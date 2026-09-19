@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#ffffff" />
+  <title>Caoqu — AI 工程 · 质量与效率</title>
+  <meta name="description" content="Caoqu 的个人主页：把大模型接进真实工作流，再用工程手段让它稳定、可测、可回滚。Flow Studio 编排画布、美图工坊、Vibe馆、小小地球侦探队。" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%230A84FF'/%3E%3Cstop offset='.5' stop-color='%23BF5AF2'/%3E%3Cstop offset='1' stop-color='%23FF375F'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='64' height='64' rx='14' fill='url(%23g)'/%3E%3Ctext x='32' y='43' font-family='-apple-system,Helvetica,sans-serif' font-size='34' font-weight='700' fill='white' text-anchor='middle'%3EC%3C/text%3E%3C/svg%3E" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- ======= 导航 ======= -->
+  <header class="nav" id="top">
+    <nav class="nav-inner" aria-label="主导航">
+      <a class="brand" href="#top">
+        <span class="brand-glyph" aria-hidden="true">C</span>
+        <span class="brand-name">Caoqu</span>
+      </a>
+      <ul class="nav-links" id="nav-links">
+        <li><a href="#about">关于</a></li>
+        <li><a href="#skills">能力</a></li>
+        <li><a href="#journey">轨迹</a></li>
+        <li><a href="#work">作品</a></li>
+        <li><a href="#contact">联系</a></li>
+      </ul>
+      <div class="nav-actions">
+        <a class="btn btn-primary btn-sm" href="#contact">联系我</a>
+        <button class="menu-toggle" id="menu-toggle" aria-expanded="false" aria-controls="nav-links" aria-label="打开菜单">
+          <span></span><span></span>
+        </button>
+      </div>
+    </nav>
+  </header>
+
+  <main>
+    <!-- ======= Hero ======= -->
+    <section class="hero" aria-label="首屏">
+      <div class="container">
+        <p class="hero-eyebrow anim anim-1">你好，我是 Caoqu。</p>
+        <h1 class="hero-title anim anim-2">让 AI 从「能跑」，<br />到「敢上线」。</h1>
+        <p class="hero-sub anim anim-3">AI 工程 · 质量与效率。把大模型接进真实工作流，再用工程手段让它稳定、可测、可回滚——顺便让界面看起来不那么像后台系统。</p>
+        <div class="hero-cta anim anim-4">
+          <a class="btn btn-primary" href="#work">看看作品</a>
+          <a class="btn-link" href="#about">了解我 <span class="chev" aria-hidden="true">›</span></a>
+        </div>
+        <div class="orb anim anim-5" aria-hidden="true">
+          <span class="orb-shadow"></span>
+          <canvas class="orb-canvas" id="hero-3d"></canvas>
+          <span class="blob b1"></span>
+          <span class="blob b2"></span>
+          <span class="blob b3"></span>
+          <span class="blob b4"></span>
+        </div>
+        <p class="orb-note anim anim-5">这颗球是手写的 WebGL 1 光线步进：SDF 元球 + 程序化影棚光照，没有 Three.js，也没有贴图。</p>
+      </div>
+    </section>
+
+    <!-- ======= 关于 ======= -->
+    <section class="section section-about" id="about">
+      <div class="container-narrow">
+        <p class="eyebrow reveal">关于我</p>
+        <h2 class="statement reveal">
+          模型的天花板一直在涨，<br />
+          但产品的地板得有人铺。
+        </h2>
+        <p class="body-text reveal">
+          白天我在一家在线旅行平台做客服与工单方向的工程，工作是把 AI 接进真实的业务流程，同时守住它的质量底线；下班后我维护一套自己的 AI 工程小生态——一个编排画布、三个零依赖的小站，和一个越写越长的知识库。
+        </p>
+        <p class="body-text reveal">
+          技术选型偏好很一致：免构建、单机能跑、依赖越少越好。没有 <code>node_modules</code>，就没有供应链风险，也不会有人打开一个页面要等三秒转圈。宁可手写一个着色器，也不想为一个渐变去装两百个包。
+        </p>
+      </div>
+    </section>
+
+    <!-- ======= 能力（Bento）======= -->
+    <section class="section section-skills" id="skills">
+      <div class="container">
+        <h2 class="section-title reveal">能力。<span class="muted">都长在项目上。</span></h2>
+        <div class="bento">
+          <article class="card span-7 reveal">
+            <div class="icon-tile" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="6" height="6" rx="1.6"/><rect x="15" y="15" width="6" height="6" rx="1.6"/><path d="M9 6h4a3 3 0 0 1 3 3v6"/></svg>
+            </div>
+            <h3>Agent 编排与运行时</h3>
+            <p>Flow Studio 的 21 种节点：LLM、Agent、意图分流、条件、模板、HTTP、知识库、记忆、技能、MCP、工具、视频分镜。条件表达式跑在受限 AST 沙箱里，只允许比较、布尔、算术和点号取值，直接拒绝函数调用与属性逃逸。</p>
+            <p class="card-foot">Python · FastAPI · 意图路由 · 表达式沙箱</p>
+          </article>
+          <article class="card card-dark span-5 reveal">
+            <div class="icon-tile" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.6-3 8.1-7 10-4-1.9-7-5.4-7-10V6l7-3z"/><path d="M9.5 11.6l1.9 1.9 3.4-3.4"/></svg>
+            </div>
+            <h3>质量与可靠性</h3>
+            <p>217 个测试用例覆盖引擎分支、防环、降级和整套 API。但我更信真实链路：把服务起起来、浏览器打开、亲手点一遍，往往比一片绿色的 mock 测试更早发现问题。</p>
+            <p class="card-foot">pytest · 端到端 · 真实链路验收</p>
+          </article>
+          <article class="card span-4 reveal">
+            <div class="icon-tile" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 7l-5 5 5 5"/><path d="M16 7l5 5-5 5"/></svg>
+            </div>
+            <h3>零依赖前端</h3>
+            <p>不装包也能做动效：原生 JS 写的 SVG 贝塞尔连线画布、Canvas 动画引擎、手写的 WebGL 着色器。构建步骤为零，部署就是拷文件。</p>
+          </article>
+          <article class="card span-4 reveal">
+            <div class="icon-tile" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h16"/><path d="M7 16v-5"/><path d="M12 16V7"/><path d="M17 16v-8"/><path d="M4 11l4-3 4 2 5-5"/></svg>
+            </div>
+            <h3>抓取与数据分析</h3>
+            <p>job_agent 适配多家招聘站点，逐日快照进 SQLite，做趋势分析与 0–100 匹配评分。没凭据、没网、没 key 的时候，用种子数据也能把全链路跑通。</p>
+          </article>
+          <article class="card span-4 reveal">
+            <div class="icon-tile" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-6.5 10-6.5S22 12 22 12s-3.5 6.5-10 6.5S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>
+            </div>
+            <h3>设计与审美</h3>
+            <p>留白、层次、秩序感。克制是一种力量，每一个微交互都得说得出自己为什么在这里。</p>
+          </article>
+        </div>
+
+        <div class="stats reveal" data-stagger>
+          <div class="stat"><span class="stat-num" data-target="21">0</span><span class="stat-label">种编排节点类型</span></div>
+          <div class="stat"><span class="stat-num" data-target="217">0</span><span class="stat-label">个自动化测试用例</span></div>
+          <div class="stat"><span class="stat-num" data-target="585">0</span><span class="stat-label">篇结构化知识沉淀</span></div>
+          <div class="stat"><span class="stat-num" data-target="14">0</span><span class="stat-label">个持续跟踪的项目</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======= 轨迹 ======= -->
+    <section class="section section-journey" id="journey">
+      <div class="container">
+        <h2 class="section-title reveal">轨迹。<span class="muted">按时间，不按职级。</span></h2>
+        <div class="timeline">
+          <div class="t-row reveal">
+            <span class="t-year">2026 · 09</span>
+            <div class="t-body">
+              <h3>Flow Studio 从画布长成平台</h3>
+              <p>在编排引擎之上补齐记忆、技能、知识库、MCP 客户端、评测与可观测，节点类型扩到 21 种；画布仍然是零构建单页，Pointer Events 一套代码同时吃鼠标和触摸。</p>
+            </div>
+          </div>
+          <div class="t-row reveal">
+            <span class="t-year">2026 · 09</span>
+            <div class="t-body">
+              <h3>两个零依赖小站上线</h3>
+              <p>美图工坊把滤镜、美颜、裁剪、涂鸦、贴纸全塞进浏览器本地跑；Vibe馆 用 Python 标准库撑起一个带审核队列的作品社区，前端一个包都不装。</p>
+            </div>
+          </div>
+          <div class="t-row reveal">
+            <span class="t-year">2026 · 08</span>
+            <div class="t-body">
+              <h3>读源码：开源 Agent Runtime</h3>
+              <p>把 DeepSeek 开源的 Agent Harness 拆开看——插件化的运行时容器、追加式会话事件日志、provider-neutral 的模型层和统一 Tool Runtime，落成一组架构笔记。</p>
+            </div>
+          </div>
+          <div class="t-row reveal">
+            <span class="t-year">2026 · 06</span>
+            <div class="t-body">
+              <h3>给 4 岁孩子做一个地球启蒙站</h3>
+              <p>小小地球侦探队：不认字也能玩。Canvas 动画分章播放、语音朗读、点大图案答题，答对有庆祝动效。六套课程，从「大海晒太阳」讲到「揭秘地球」。</p>
+            </div>
+          </div>
+          <div class="t-row reveal">
+            <span class="t-year">2026 · 05</span>
+            <div class="t-body">
+              <h3>开始把一切写进知识库</h3>
+              <p>踩过的坑、验过的链路、读过的源码，全部结构化成带来源与置信度的 Markdown 笔记。从此排查同一个问题不用翻聊天记录——现在 585 篇。</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======= 作品（暗色）======= -->
+    <section class="section section-work" id="work">
+      <div class="container">
+        <h2 class="section-title reveal">作品。<span class="muted-on-dark">都是真的在跑的。</span></h2>
+        <p class="section-sub reveal">四个自己写、自己部署、自己每天在用的项目。截图来自真实运行界面，动图是当场录的。</p>
+
+        <div class="works">
+          <article class="work-row reveal">
+            <div class="shot" data-video="assets/work-flow.mp4">
+              <div class="shot-bar" aria-hidden="true">
+                <span></span><span></span><span></span>
+                <em>Flow Studio · 127.0.0.1:8788</em>
+              </div>
+              <div class="shot-view">
+                <img src="assets/work-flow.jpg" alt="Flow Studio 工作流画布：左侧是 21 种节点面板，中间连出三条意图支路，右侧是流程设置表单" loading="lazy" />
+                <video class="shot-vid" muted loop playsinline preload="none" aria-hidden="true"></video>
+              </div>
+            </div>
+            <div class="work-copy">
+              <div>
+                <p class="work-tags">Python · FastAPI · 零构建画布</p>
+                <h3>Flow Studio</h3>
+                <p class="work-desc">拖拽画布编排 Agent 与工作流。意图节点先分流，条件节点做分支，LLM 节点在没有 key 时自动降级成规则而不阻断整条流程——所以图里这条「应聘助手」开箱就能跑完。</p>
+              </div>
+              <div>
+                <ul class="work-list">
+                  <li>21 种节点：LLM / Agent / 意图 / 条件 / 模板 / HTTP / 知识库 / 记忆 / 技能 / MCP / 分镜视频</li>
+                  <li>一句话触发：外部主 agent 调 <code>/api/agent/chat</code> 即可路由到整条流程</li>
+                  <li>217 个 pytest 用例，覆盖引擎防环、降级与整套 API</li>
+                </ul>
+                <p class="work-hint">画面滚到就自己播 —— 当场录的，不是设计稿</p>
+              </div>
+            </div>
+          </article>
+
+          <article class="work-row is-phone reveal">
+            <div class="shot" data-video="assets/work-meitu.mp4">
+              <div class="shot-view">
+                <img src="assets/work-meitu.jpg" alt="美图工坊移动端：底部滤镜条当前选中「日系」，工具栏有滤镜、美颜、调参、马赛克、贴纸、文字、涂鸦、裁剪" loading="lazy" />
+                <video class="shot-vid" muted loop playsinline preload="none" aria-hidden="true"></video>
+              </div>
+            </div>
+            <div class="work-copy">
+              <div>
+                <p class="work-tags">纯静态 · WebGL · 无后端</p>
+                <h3>美图工坊</h3>
+                <p class="work-desc">13 种滤镜、美颜、调参、裁剪、马赛克、贴纸、文字、涂鸦，全部在浏览器本地跑完——图片不出这台设备，服务器只负责把这几个文件发给你。</p>
+              </div>
+              <div>
+                <ul class="work-list">
+                  <li>滤镜、美颜、调参跑在一条 WebGL 着色器管线上：warp → blur → color</li>
+                  <li>导出走 <code>toBlob</code>，从打开到存图没有一次网络上传</li>
+                </ul>
+              </div>
+            </div>
+          </article>
+
+          <article class="work-row reveal">
+            <div class="shot">
+              <div class="shot-bar" aria-hidden="true">
+                <span></span><span></span><span></span>
+                <em>Vibe馆 · 127.0.0.1:8789</em>
+              </div>
+              <div class="shot-view">
+                <img src="assets/work-vibe.jpg" alt="Vibe馆 首页：一句话造一个东西，左侧咒语输入框，右侧实时生成三张作品卡预览" loading="lazy" />
+              </div>
+            </div>
+            <div class="work-copy">
+              <div>
+                <p class="work-tags">Python 标准库 · 社区 · 审核流</p>
+                <h3>Vibe馆</h3>
+                <p class="work-desc">vibe coding 作品社区：输入咒语时右侧实时长出作品卡预览，投稿进审核队列，详情页按图文自动交替排版。后端只用标准库，数据存一个 JSON 文件。</p>
+              </div>
+              <div>
+                <ul class="work-list">
+                  <li>不传封面时按咒语生成一张 aura 渐变卡</li>
+                  <li>每件作品最多带 12 个系统页面，图左图右自动轮转</li>
+                </ul>
+              </div>
+            </div>
+          </article>
+
+          <article class="work-row reveal">
+            <div class="shot">
+              <div class="shot-view">
+                <img src="assets/work-kid.jpg" alt="小小地球侦探队 答题闯关：线索抽屉里一道三个大图案选项的题目，右侧是家长陪玩提示" loading="lazy" />
+              </div>
+            </div>
+            <div class="work-copy">
+              <div>
+                <p class="work-tags">Canvas 动画 · 语音 · 儿童科普</p>
+                <h3>小小地球侦探队</h3>
+                <p class="work-desc">给 4 岁孩子做的：不用认字也能玩。看动画、点大图案、答对了放庆祝动效。六套课程从「大海晒太阳」讲到「揭秘地球」，零构建，本地双击就能开。</p>
+              </div>
+              <div>
+                <ul class="work-list">
+                  <li>动画引擎、语音朗读、场景跳转自成一层，换课程只改数据</li>
+                  <li>题目是苏格拉底式的：先看线索、再猜现象、最后说理由</li>
+                </ul>
+              </div>
+            </div>
+          </article>
+        </div>
+
+        <p class="work-note reveal">工作里那套客服与工单的 AI 系统就不在这里贴图了——内部系统，截图和数据都不外传。</p>
+      </div>
+    </section>
+
+    <!-- ======= 联系 ======= -->
+    <section class="section section-contact" id="contact">
+      <div class="container-narrow">
+        <h2 class="section-title reveal">下一步。<span class="muted">一起做点酷的。</span></h2>
+        <p class="body-text reveal">无论是有意思的项目、值得聊的想法，还是一份新机会，都欢迎来找我。代码都在 Gitee 上，想聊具体实现，直接开 issue 也行。</p>
+        <div class="contact-actions reveal">
+          <a class="btn btn-primary btn-lg" href="https://gitee.com/caoqu" target="_blank" rel="noopener">在 Gitee 上找我</a>
+        </div>
+        <ul class="contact-links reveal">
+          <li><a href="https://gitee.com/caoqu" target="_blank" rel="noopener">代码仓库 <span class="chev" aria-hidden="true">›</span></a></li>
+          <li><a href="#work">作品截图与录屏 <span class="chev" aria-hidden="true">›</span></a></li>
+          <li><a href="#journey">最近在做什么 <span class="chev" aria-hidden="true">›</span></a></li>
+        </ul>
+      </div>
+    </section>
+  </main>
+
+  <!-- ======= 页脚 ======= -->
+  <footer class="footer">
+    <div class="container footer-inner">
+      <p>Copyright © <span id="year">2026</span> Caoqu. 保留所有权利。</p>
+      <p class="footer-note">纯静态四件套 · 零依赖 · 零构建</p>
+    </div>
+  </footer>
+
+  <script src="main.js"></script>
+  <script src="webgl.js"></script>
+</body>
+</html>
