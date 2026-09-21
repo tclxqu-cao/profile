@@ -171,6 +171,246 @@
     sync();
   }
 
+  /* 终端首屏：命令的输出全部现从页面 DOM 里读，
+     改了文案 / 数字，终端不会反过来讲一套假话 */
+  const term = document.querySelector(".term");
+  const termBody = document.querySelector(".term-body");
+  const termOut = document.getElementById("term-out");
+  const termForm = document.getElementById("term-form");
+  const termInput = document.getElementById("term-input");
+  const termMeasure = document.getElementById("term-measure");
+
+  const el = (tag, cls, text) => {
+    const node = document.createElement(tag);
+    if (cls) node.className = cls;
+    if (text != null) node.textContent = text;
+    return node;
+  };
+  const txt = (root, sel) => (root.querySelector(sel) || {}).textContent || "";
+  const norm = (s) => s.trim().toLowerCase().replace(/[/／]$/, "").replace(/[\s·、]+/g, "-");
+
+  /* 作品清单以首屏那行 `ls works/` 为准，open 的别名再补上卡片标题。
+     开头缓存一次：命令输出里会出现它的副本，再查 DOM 就成双份了 */
+  const WORK_LINKS = [...document.querySelectorAll(".t-files a")].map((a) => {
+    const row = document.querySelector(a.getAttribute("href"));
+    return {
+      label: a.textContent.trim(),
+      row,
+      name: row ? txt(row, ".work-copy h3").trim() : "",
+      tags: row ? txt(row, ".work-tags").trim() : "",
+      keys: [norm(a.textContent), norm(row ? txt(row, ".work-copy h3") : "")].filter(Boolean),
+    };
+  });
+  const workList = () => WORK_LINKS;
+
+  const jump = (node) => {
+    if (!node) return;
+    node.scrollIntoView({ behavior: prefersReduced ? "auto" : "smooth", block: "start" });
+  };
+
+  const cmds = {
+    help: (b) => {
+      const grid = el("div", "t-cols");
+      [
+        ["whoami", "我是做什么的"],
+        ["works", "列作品（可 open <名字>）"],
+        ["skills", "能力清单"],
+        ["timeline", "轨迹"],
+        ["stats", "页面上的数字"],
+        ["contact", "联系方式"],
+        ["clear", "清空屏幕"],
+      ].forEach(([k, v]) => {
+        grid.append(el("dt", null, k), el("dd", null, v));
+      });
+      b.append(grid, el("p", "t-dim", "↑↓ 翻历史 · Tab 补全 · 点击建议词也行"));
+    },
+
+    whoami: (b) => {
+      const meta = txt(document.querySelector(".term"), ".t-meta");
+      const desc = txt(document.querySelector(".term"), ".t-desc").replace(/\s+/g, " ").trim();
+      b.append(el("p", "t-ok", "caoqu"), el("p", null, meta), el("p", "t-dim", desc));
+    },
+
+    ls: (b) => b.append(document.querySelector(".t-files").cloneNode(true)),
+    works: (b) => {
+      workList().forEach((w) => b.append(jumpLine(w.label.replace(/\/$/, ""), w.row, w.tags)));
+      b.append(el("p", "t-dim", "open <名字> 直接跳过去"));
+    },
+
+    open: (b, arg) => {
+      if (!arg) return el("p", "t-hl", "用法：open <作品名>　例如 open flow-studio");
+      const q = norm(arg);
+      const hit = workList().find((w) => w.keys.some((k) => k.startsWith(q)));
+      if (!hit) return el("p", "t-err", `open: no such file or directory: ${arg}`);
+      jump(hit.row);
+      return el("p", "t-ok", `→ ${hit.name}`);
+    },
+
+    skills: (b) => {
+      [...document.querySelectorAll("#skills .card h3")].forEach((h) =>
+        b.append(jumpLine(h.textContent.trim(), h.closest(".card")))
+      );
+    },
+
+    timeline: (b) => {
+      [...document.querySelectorAll(".t-row")].forEach((row) => {
+        const line = el("p");
+        line.append(
+          el("span", "t-link", txt(row, ".t-year").trim()),
+          el("span", null, "  " + txt(row, ".t-body h3").trim())
+        );
+        b.append(line);
+      });
+      b.append(jumpLine("→ 跳到轨迹", document.getElementById("journey")));
+    },
+
+    stats: (b) => {
+      const grid = el("div", "t-cols");
+      [...document.querySelectorAll(".stat")].forEach((s) => {
+        grid.append(
+          el("dt", "t-hl", txt(s, ".stat-num").trim()),
+          el("dd", null, txt(s, ".stat-label").trim())
+        );
+      });
+      b.append(grid, el("p", "t-dim", "每个数字旁边都写了量它的命令，可以自己复算"));
+    },
+
+    contact: (b) => {
+      document.querySelectorAll(".contact-links a").forEach((a) => {
+        const p = el("p");
+        p.append(
+          el("span", null, a.textContent.replace("›", "").trim()),
+          el("span", "t-dim", "  " + (/^https?:/.test(a.href) ? a.href : a.getAttribute("href")))
+        );
+        b.append(p);
+      });
+      b.append(jumpLine("→ 跳到联系区", document.getElementById("contact")));
+    },
+
+    date: () => el("p", null, new Date().toString()),
+  };
+
+  function jumpLine(label, target, note) {
+    const p = el("p");
+    const btn = el("button", "t-jump", label);
+    btn.type = "button";
+    btn.addEventListener("click", () => jump(target));
+    p.append(btn);
+    if (note) p.append(el("span", "t-dim", "  " + note.replace(/\s+/g, " ").trim()));
+    return p;
+  }
+
+  /* 只清掉命令打出来的东西，首屏那段欢迎语是 HTML 里的原文。
+     表单是 #term-out 的兄弟节点：新输出往上长，光标行自然被顶下去 */
+  const clearScreen = () => {
+    termOut.querySelectorAll(".t-echo, .t-block").forEach((c) => c.remove());
+  };
+
+  const run = (raw) => {
+    const [name, ...rest] = raw.trim().split(/\s+/);
+    const arg = rest.join(" ");
+    if (!name) return;
+    if (name === "clear") return clearScreen();
+    const b = el("div", "t-block");
+    termOut.append(b);
+
+    if (name === "sudo")
+      return void b.append(
+        el("p", "t-err", "caoqu is not in the sudoers file. This incident will be reported."),
+        el("p", "t-dim", "而且就算报了也没用——内部系统的截图和数据都不外传。")
+      );
+    if (/^(vim|vi|nano|emacs)$/.test(name))
+      return void b.append(el("p", "t-hl", "这台机器没装编辑器。整站零依赖，所以我也不装。"));
+    if (/^(npm|yarn|pnpm|node)$/.test(name))
+      return void b.append(
+        el("p", "t-hl", "npm 在这里没有。四个文件、零个包，构建步骤就是「拷文件」。")
+      );
+    if (/^(exit|quit|logout)$/.test(name))
+      return void b.append(el("p", "t-dim", "这不是一个真会话，关掉标签页就行。"));
+    if (cmds[name]) {
+      const ret = cmds[name](b, arg);
+      if (ret) b.append(ret);
+      return;
+    }
+    b.append(
+      el("p", "t-err", `zsh: command not found: ${name}`),
+      el("p", "t-dim", "试试 help、works、open flow-studio")
+    );
+  };
+
+  const runAndShow = (raw) => {
+    const line = el("p", "t-line t-echo");
+    line.append(el("span", "t-prompt", "caoqu@local:~$"), document.createTextNode(raw));
+    termOut.append(line);
+    run(raw);
+    termBody.scrollTop = termBody.scrollHeight;
+  };
+
+  const history = [];
+  let cursor = 0;
+
+  termForm.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const raw = termInput.value;
+    if (!raw.trim()) return runAndShow("");
+    history.push(raw);
+    cursor = history.length;
+    termInput.value = "";
+    fitInput();
+    runAndShow(raw);
+  });
+
+  const ALL_CMDS = [...Object.keys(cmds), "clear", "help", "sudo", "exit"];
+  termInput.addEventListener("keydown", (e) => {
+    if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+      if (!history.length) return;
+      e.preventDefault();
+      cursor = Math.max(0, Math.min(history.length, cursor + (e.key === "ArrowUp" ? -1 : 1)));
+      termInput.value = history[cursor] || "";
+      fitInput();
+    } else if (e.key === "Tab") {
+      const head = norm(termInput.value);
+      if (!head) return;
+      const hit = ALL_CMDS.filter((c) => c.startsWith(head));
+      if (hit.length === 1) {
+        e.preventDefault();
+        termInput.value = hit[0] + " ";
+        fitInput();
+      }
+    } else if (e.key === "l" && e.ctrlKey) {
+      e.preventDefault();
+      clearScreen();
+    } else if (e.key === "Escape") {
+      termInput.blur();
+    }
+  });
+
+  /* input 没有 auto 宽度：拿一个隐形 span 量当前文本有多宽再写回去。
+     空着的时候量 placeholder，否则提示语会被切掉半个汉字 */
+  const fitInput = () => {
+    termMeasure.textContent = termInput.value || termInput.placeholder;
+    termInput.style.width = `${termMeasure.getBoundingClientRect().width + 2}px`;
+    termForm.classList.toggle("is-empty", !termInput.value);
+  };
+  termInput.addEventListener("input", fitInput);
+  fitInput();
+
+  document.querySelectorAll("#term-chips button").forEach((btn) =>
+    btn.addEventListener("click", () => {
+      termInput.focus();
+      runAndShow(btn.dataset.cmd);
+    })
+  );
+
+  term.addEventListener("focusin", () => term.classList.add("is-focused"));
+  term.addEventListener("focusout", () => term.classList.remove("is-focused"));
+  /* 手机上点终端别弹键盘，读东西比敲命令重要 */
+  if (window.matchMedia("(hover: hover) and (pointer: fine)").matches)
+    termBody.addEventListener("pointerdown", (e) => {
+      if (e.target.closest("a, button")) return;
+      termInput.focus();
+    });
+
   /* 页脚年份 */
   document.getElementById("year").textContent = new Date().getFullYear();
 })();
