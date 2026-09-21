@@ -43,7 +43,7 @@ python3 -m http.server 8000   # 打开 http://localhost:8000
 
 纯静态站，任何静态托管平台都能免费部署：
 
-- **Vercel**：在本目录执行 `npx vercel --prod --scope agent-caa8`（不带 `--scope` 会报 `Not authorized`，那是组织作用域问题不是令牌过期），或推到 GitHub 后在 vercel.com/new 导入，零配置。生产地址 `https://portfolio-agent-caa8.vercel.app`。
+- **Vercel**：在本目录执行 `npx vercel deploy --prod --yes --scope agent-caa8`（不带 `--scope` 会报 `Not authorized`，那是组织作用域问题不是令牌过期），或推到 GitHub 后在 vercel.com/new 导入，零配置。生产别名 `https://portfolio-ten-theta-3eifgugd4s.vercel.app`，始终指向最新一次 production 部署；每次部署另有一个带随机 hash 的独立地址，会变。
 - **Netlify**：`npx netlify deploy --prod --dir .`
 - **GitHub Pages**：推仓库后 Settings → Pages 选分支根目录。
 
