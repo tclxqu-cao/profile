@@ -1,0 +1,20 @@
+README.md
+  h_b0bf4228a0b7ec 43-46,51-61
+index.html
+  h_b0bf4228a0b7ec 140,155
+main.js
+  h_b0bf4228a0b7ec 71-110,117,121-201,471,476,487-490,492,496-497,503,507-508,512-515,518-520,523-528,535-538,595-602,608,612-614,632,861,870
+style.css
+  h_b0bf4228a0b7ec 365-369,380-381,398-411,606-608
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "8cb29cfdb28c134554002402e58b5f6c45737894",
+  "prompts": {},
+  "humans": {
+    "h_b0bf4228a0b7ec": {
+      "author": "无敌就是寂寞 <qu.cao@ly.com>"
+    }
+  }
+}
