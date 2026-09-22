@@ -15,10 +15,12 @@
   <!-- ======= 导航 ======= -->
   <header class="nav" id="top">
     <nav class="nav-inner" aria-label="主导航">
+      <span class="nav-dots" aria-hidden="true"><i></i><i></i><i></i></span>
       <a class="brand" href="#top">
         <span class="brand-glyph" aria-hidden="true">C</span>
         <span class="brand-name">Caoqu</span>
       </a>
+      <em class="nav-tty" aria-hidden="true">caoqu@local — zsh — portfolio</em>
       <ul class="nav-links" id="nav-links">
         <li><a href="#about">关于</a></li>
         <li><a href="#skills">能力</a></li>
@@ -36,51 +38,45 @@
   </header>
 
   <main>
-    <!-- ======= Hero ======= -->
+    <!-- ======= Hero：整屏终端（导航条即标题栏，极光球在终端背后） ======= -->
     <section class="hero" aria-label="首屏">
-      <div class="container hero-split">
-        <div class="term anim anim-1">
-          <div class="term-bar" aria-hidden="true">
-            <span></span><span></span><span></span>
-            <em>caoqu@local — zsh — 92×26</em>
-          </div>
-          <div class="term-body">
-            <div id="term-out" aria-live="polite">
-              <p class="t-line"><span class="t-prompt">caoqu@local:~$</span> whoami</p>
-              <h1 class="t-h1">让 AI 从「能跑」，<br />到「敢上线」。</h1>
-              <p class="t-out t-meta">AI 工程 · 质量与效率</p>
-              <p class="t-out t-desc">把大模型接进真实工作流，再用工程手段让它稳定、可测、可回滚。<br />顺便让界面看起来不那么像后台系统。</p>
-              <p class="t-line"><span class="t-prompt">caoqu@local:~$</span> ls works/</p>
-              <p class="t-out t-files">
-                <a href="#work-flow">flow-studio/</a><a href="#work-meitu">meitu-web/</a><a href="#work-vibe">vibe-works/</a><a href="#work-kid">kid-earth/</a>
-              </p>
-            </div>
-            <form class="t-line t-input-row is-empty" id="term-form" autocomplete="off">
-              <label class="t-sr" for="term-input">终端命令</label>
-              <span class="t-prompt" aria-hidden="true">caoqu@local:~$</span>
-              <input type="text" id="term-input" name="cmd" placeholder="试着输入 works" spellcheck="false" autocapitalize="off" />
-              <span class="t-measure" id="term-measure" aria-hidden="true"></span>
-            </form>
-            <p class="t-chips" id="term-chips">
-              <button type="button" data-cmd="help">help</button>
-              <button type="button" data-cmd="works">works</button>
-              <button type="button" data-cmd="open flow-studio">flow-studio</button>
-              <button type="button" data-cmd="timeline">轨迹</button>
-              <button type="button" data-cmd="contact">联系</button>
-            </p>
-          </div>
+      <div class="orb-stage anim anim-3" aria-hidden="true">
+        <div class="orb">
+          <span class="orb-shadow"></span>
+          <canvas class="orb-canvas" id="hero-3d"></canvas>
+          <span class="blob b1"></span>
+          <span class="blob b2"></span>
+          <span class="blob b3"></span>
+          <span class="blob b4"></span>
         </div>
-
-        <div class="orb-stage anim anim-3">
-          <div class="orb" aria-hidden="true">
-            <span class="orb-shadow"></span>
-            <canvas class="orb-canvas" id="hero-3d"></canvas>
-            <span class="blob b1"></span>
-            <span class="blob b2"></span>
-            <span class="blob b3"></span>
-            <span class="blob b4"></span>
+      </div>
+      <div class="term term-full anim anim-1">
+        <div class="term-body">
+          <div id="term-out" aria-live="polite">
+            <p class="t-line"><span class="t-prompt">caoqu@local:~$</span> whoami</p>
+            <h1 class="t-h1">让 AI 从「能跑」，<br />到「敢上线」。</h1>
+            <p class="t-out t-meta">AI 工程 · 质量与效率</p>
+            <p class="t-out t-desc">把大模型接进真实工作流，再用工程手段让它稳定、可测、可回滚。<br />顺便让界面看起来不那么像后台系统。</p>
+            <p class="t-line"><span class="t-prompt">caoqu@local:~$</span> ls works/</p>
+            <p class="t-out t-files">
+              <a href="#work-flow">flow-studio/</a><a href="#work-meitu">meitu-web/</a><a href="#work-vibe">vibe-works/</a><a href="#work-kid">kid-earth/</a>
+            </p>
+            <p class="t-out t-note"># 背后那颗球是手写的 WebGL 1 光线步进：SDF 元球 + 程序化影棚光照，没有 Three.js，也没有贴图。</p>
+            <p class="t-out t-note"># 不想打字就往下滚，下面才是给人看的版本。</p>
           </div>
-          <p class="orb-note">这颗球是手写的 WebGL 1 光线步进：SDF 元球 + 程序化影棚光照，没有 Three.js，也没有贴图。</p>
+          <form class="t-line t-input-row is-empty" id="term-form" autocomplete="off">
+            <label class="t-sr" for="term-input">终端命令</label>
+            <span class="t-prompt" aria-hidden="true">caoqu@local:~$</span>
+            <input type="text" id="term-input" name="cmd" placeholder="试着输入 works" spellcheck="false" autocapitalize="off" />
+            <span class="t-measure" id="term-measure" aria-hidden="true"></span>
+          </form>
+          <p class="t-chips" id="term-chips">
+            <button type="button" data-cmd="help">help</button>
+            <button type="button" data-cmd="works">works</button>
+            <button type="button" data-cmd="open flow-studio">flow-studio</button>
+            <button type="button" data-cmd="timeline">轨迹</button>
+            <button type="button" data-cmd="contact">联系</button>
+          </p>
         </div>
       </div>
     </section>

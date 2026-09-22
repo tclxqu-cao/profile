@@ -490,7 +490,7 @@
         });
       } else {
         wait(node);
-        acts.push({ ms: 130, fn: () => node.classList.remove("t-wait") });
+        acts.push({ ms: 110, fn: () => node.classList.remove("t-wait") });
       }
     });
 

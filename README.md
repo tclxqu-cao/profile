@@ -1,12 +1,15 @@
 # Caoqu — 个人主页
 
-仿 Apple 设计风格的个人网站：毛玻璃导航、可敲命令的终端 Hero、苹果系统配色与字体栈。
+仿 Apple 设计风格的个人网站：整屏终端首屏、毛玻璃导航、苹果系统配色与字体栈。
 纯静态四件套（`index.html` + `style.css` + `main.js` + `webgl.js`），零依赖、无构建、无后端。
 
 ## 终端首屏
 
-Hero 是一个能真的敲命令的假终端（`main.js` 末段）：
+首屏就是一台占满一屏的终端（`.hero` 固定 `height:100svh`，`.term-full` 铺满它），Hero 不再是一张卡片：
 
+- 未滚动时导航条就是这台终端的标题栏：红绿灯三个点 + `caoqu@local — zsh — portfolio`。切换靠的是既有的 `.nav.scrolled` 类（`scrollY > 8` 时加上），`.nav:not(.scrolled)` 一套规则改成深色等宽，不需要额外 JS；往下滚就还原成普通毛玻璃导航。
+- WebGL 球退到 `.term-full` 背后当背景（`.orb-stage` 绝对定位 `z-index:0`、`.term-full` 半透明 `rgba(9,9,18,.74)` 盖在上面），球上再压一层深色所以文字仍然读得清。原来 Hero 右侧那块独立的球和 `.orb-note` 都删了，`<head>` 里的 `aria-label` 与结构相应重排。
+- `.term-body` 自己 `overflow-y:auto`，但**故意不加** `overscroll-behavior: contain`：终端滚到底就该把滚动交给页面，一个占满首屏的嵌套滚动区最怕的就是滚不出去。同理这里不用 `min-height`——内容一多首屏就会被撑成两屏，变成一个往下滚不动的坑。
 - 命令的输出**全部现从页面 DOM 里读**——`works` 读首屏那行 `ls works/` 的链接、`skills` 读 `#skills .card h3`、`stats` 读 `.stat`、`timeline` 读 `.t-row`。改了文案或数字，终端不会反过来讲一套假话。
 - 支持 `help / whoami / ls / works / open <名字> / skills / timeline / stats / contact / date / clear`，↑↓ 翻历史、Tab 补全、Ctrl-L 清屏；`open` 的别名同时接受 `flow-studio`、`flow`、`Flow Studio`。
 - 用户输入一律走 `textContent` 建节点，不拼 HTML 字符串。
@@ -16,7 +19,7 @@ Hero 是一个能真的敲命令的假终端（`main.js` 末段）：
 
 ## 3D 部分
 
-- `webgl.js`：Hero 的液态金属球，手写 WebGL 1 光线步进（SDF + smooth-union 元球），无任何库与环境贴图，色相由菲涅尔驱动极光调色板。
+- `webgl.js`：首屏终端背景那颗液态金属球，手写 WebGL 1 光线步进（SDF + smooth-union 元球），无任何库与环境贴图，色相由菲涅尔驱动极光调色板。
   渐进增强：拿不到 WebGL 上下文或编译失败时静默退出，保留原来的 CSS 模糊光斑。
   自适应：分辨率缩放 + 掉帧降采样，离屏/后台暂停，`prefers-reduced-motion` 只渲染一帧静态图。
 - 卡片 3D 倾斜：`main.js` 检测 `(hover: hover) and (pointer: fine)` 后给 `<html>` 加 `.tilt-on`，指针驱动 `perspective + rotateX/rotateY` 与跟随高光；触屏与降级偏好下不启用。

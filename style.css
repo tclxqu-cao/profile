@@ -147,6 +147,41 @@ a, button { -webkit-tap-highlight-color: transparent; }
 }
 .nav.scrolled::after { opacity: 1; }
 
+/* 未滚动时导航条就是这台终端的标题栏：同一块深色、等宽字、红绿灯
+   用 .scrolled 的有无来切态，纯 CSS，不需要 JS 也走得通 */
+.nav:not(.scrolled)::before {
+  background: rgba(9, 9, 18, 0.86);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+.nav:not(.scrolled)::after { opacity: 1; background: rgba(255, 255, 255, 0.1); }
+.nav:not(.scrolled) .brand { color: #f2f2f7; }
+.nav:not(.scrolled) .nav-links a {
+  font: 500 12.5px / 1 ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: rgba(255, 255, 255, 0.56);
+}
+@media (hover: hover) {
+  .nav:not(.scrolled) .nav-links a:hover { color: #fff; }
+}
+.nav:not(.scrolled) .menu-toggle span { background: #f2f2f7; }
+.nav-dots { display: none; align-items: center; gap: 7px; }
+.nav-dots i { width: 10px; height: 10px; border-radius: 50%; }
+.nav-dots i:nth-child(1) { background: #ff5f57; }
+.nav-dots i:nth-child(2) { background: #febc2e; }
+.nav-dots i:nth-child(3) { background: #28c840; }
+.nav-tty { display: none; font-style: normal; }
+.nav:not(.scrolled) .nav-dots { display: flex; }
+.nav:not(.scrolled) .nav-tty {
+  display: block;
+  margin-right: auto;
+  font: 500 11.5px / 1 ui-monospace, SFMono-Regular, Menlo, monospace;
+  letter-spacing: 0.02em;
+  color: rgba(255, 255, 255, 0.34);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .nav-inner {
   max-width: 1024px;
   height: 100%;
@@ -206,20 +241,30 @@ a, button { -webkit-tap-highlight-color: transparent; }
 .menu-toggle[aria-expanded="true"] span:nth-child(1) { top: 17px; transform: rotate(45deg); }
 .menu-toggle[aria-expanded="true"] span:nth-child(2) { top: 17px; transform: rotate(-45deg); }
 
-/* ---------- Hero：终端首屏 ---------- */
+/* ---------- Hero：整屏终端（导航条即标题栏） ---------- */
 
 .hero {
-  padding: calc(var(--nav-h) + 76px) 0 108px;
+  position: relative;
+  height: 100vh;
+  height: 100svh;
+  display: flex;
+  padding-top: var(--nav-h);
   overflow: hidden;
 }
 
-.hero-split {
-  max-width: 1180px;
+/* 极光球退到终端背后，靠右居中；终端底色留了透明度，打字时能看到它在动 */
+.orb-stage {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
   display: grid;
-  grid-template-columns: minmax(0, 1.06fr) minmax(0, 0.94fr);
   align-items: center;
-  gap: 56px;
+  justify-items: end;
+  padding-right: clamp(20px, 7vw, 130px);
+  opacity: 0.55;
+  pointer-events: none;
 }
+.orb-stage .orb { width: min(620px, 58vw); margin: 0; }
 
 .term {
   background: #0b0b14;
@@ -228,41 +273,32 @@ a, button { -webkit-tap-highlight-color: transparent; }
   box-shadow: 0 38px 84px rgba(0, 0, 0, 0.36), 0 2px 6px rgba(0, 0, 0, 0.18);
   overflow: hidden;
 }
-
-.term-bar {
+.term-full {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  min-width: 0;
   display: flex;
-  align-items: center;
-  gap: 7px;
-  height: 38px;
-  padding: 0 15px;
-  background: rgba(255, 255, 255, 0.05);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-}
-.term-bar span { width: 10px; height: 10px; border-radius: 50%; background: rgba(255, 255, 255, 0.22); }
-.term-bar span:nth-child(1) { background: #ff5f57; }
-.term-bar span:nth-child(2) { background: #febc2e; }
-.term-bar span:nth-child(3) { background: #28c840; }
-.term-bar em {
-  margin-left: 12px;
-  font: 500 11.5px / 1 ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-style: normal;
-  letter-spacing: 0.02em;
-  color: rgba(255, 255, 255, 0.38);
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
+  flex-direction: column;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  background: rgba(9, 9, 18, 0.74);
 }
 
 .term-body {
-  padding: 20px 22px 22px;
-  font: 400 14px / 1.75 ui-monospace, SFMono-Regular, Menlo, monospace;
+  flex: 1;
+  min-height: 0;
+  padding: clamp(26px, 5vh, 56px) clamp(18px, 5vw, 76px) clamp(24px, 4vh, 44px);
+  font: 400 clamp(13.5px, 1.05vw + 9px, 16px) / 1.8 ui-monospace, SFMono-Regular, Menlo, monospace;
   color: #e7e7f0;
-  max-height: min(540px, 72vh);
   overflow-y: auto;
-  overscroll-behavior: contain;
   scrollbar-width: thin;
   scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
 }
+/* 故意不做 overscroll-behavior: contain——终端滚到底就该把页面带走，
+   嵌套滚动区最怕的是滚不出去 */
+.term-body > * { max-width: 1140px; }
 .term-body::-webkit-scrollbar { width: 8px; }
 .term-body::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.16); border-radius: 8px; }
 
@@ -270,6 +306,7 @@ a, button { -webkit-tap-highlight-color: transparent; }
 .t-prompt { color: #30d158; margin-right: 8px; }
 .term-body .t-out { color: #d4d4e2; }
 .term-body .t-dim { color: rgba(255, 255, 255, 0.42); }
+.term-body .t-note { color: rgba(255, 255, 255, 0.36); }
 .term-body .t-ok { color: #30d158; }
 .term-body .t-err { color: #ff6961; }
 .term-body .t-hl { color: #ffd60a; }
@@ -278,10 +315,10 @@ a, button { -webkit-tap-highlight-color: transparent; }
 .t-desc { color: #9c9cb0; }
 
 .t-h1 {
-  margin: 12px 0 14px;
-  font-size: clamp(25px, 3.1vw, 37px);
+  margin: 14px 0 16px;
+  font-size: clamp(30px, 3.6vw, 56px);
   font-weight: 700;
-  line-height: 1.24;
+  line-height: 1.22;
   letter-spacing: -0.02em;
   background: var(--aurora);
   -webkit-background-clip: text;
@@ -463,22 +500,6 @@ html:not(.js) .t-chips { display: none; }
 .webgl-on .orb-shadow { opacity: 1; }
 .webgl-on .blob,
 .webgl-on .orb::before { display: none; }
-
-.orb-note {
-  max-width: 420px;
-  margin: 26px auto 0;
-  font-size: 13px;
-  line-height: 1.6;
-  color: var(--text-2);
-  opacity: 0.72;
-  text-align: center;
-}
-.orb-note.anim { animation-delay: 1.15s; }
-
-/* 分栏里球要跟终端并排：收窄、去掉上下留白 */
-.orb-stage { min-width: 0; }
-.hero-split .orb { width: min(440px, 92%); margin: 0 auto; }
-.hero-split .orb-note { margin-top: 22px; }
 
 .body-text code {
   font: 500 0.86em / 1.4 ui-monospace, SFMono-Regular, Menlo, monospace;
@@ -895,10 +916,11 @@ html:not(.js) .t-chips { display: none; }
 
 /* ---------- 响应式 ---------- */
 
-/* 终端要能看清整行命令，放不下就上下摞 */
+/* 小屏不放标题栏的 tty 串，球挪到正后方并压暗，先保证文字读得清 */
 @media (max-width: 1000px) {
-  .hero-split { grid-template-columns: 1fr; gap: 64px; }
-  .hero-split .orb { width: min(460px, 74vw); }
+  .orb-stage { justify-items: center; padding-right: 0; opacity: 0.3; }
+  .orb-stage .orb { width: min(520px, 86vw); }
+  .nav:not(.scrolled) .nav-tty { display: none; }
 }
 
 @media (max-width: 860px) {
@@ -929,11 +951,16 @@ html:not(.js) .t-chips { display: none; }
     transition: opacity 0.4s var(--ease), transform 0.4s var(--ease), visibility 0.4s;
   }
   .nav-links a { font-size: 26px; font-weight: 600; color: var(--text); display: block; padding: 10px 0; }
+  /* 标题栏态的字色是给深色条用的，展开成浅色全屏菜单时必须盖回来 */
+  .nav:not(.scrolled) .nav-links a {
+    font: 600 26px / 1.35 -apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue", sans-serif;
+    color: var(--text);
+  }
+  .nav.open:not(.scrolled) .menu-toggle span { background: var(--text); }
   .nav.open .nav-links { opacity: 1; visibility: visible; transform: none; }
   .menu-toggle { display: block; }
   .nav-actions .btn { display: none; }
-  .hero { padding-top: calc(var(--nav-h) + 64px); }
-  .term-body { padding: 18px 16px 20px; font-size: 13px; }
+  .term-body { padding: 24px 18px 26px; }
   .card { padding: 30px; }
   /* 移动端降低模糊成本，避免掉帧 */
   .blob { filter: blur(38px); }
