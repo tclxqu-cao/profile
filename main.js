@@ -1,160 +1,20 @@
-/* Caoqu — 个人主页交互 */
+/* Caoqu — 个人主页：整站一屏终端的交互
+   内容源是 index.html 里的 <template>，命令只负责把它 clone 进 #term-out。
+   所以终端没法反过来讲一套假话：改文案不用碰这个文件。 */
 (() => {
   "use strict";
 
   const prefersReduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-  /* 滚动显现：同一批进入视口的元素依次级联 */
-  const revealEls = document.querySelectorAll(".reveal");
-  if (prefersReduced || !("IntersectionObserver" in window)) {
-    revealEls.forEach((el) => el.classList.add("is-visible"));
-  } else {
-    const io = new IntersectionObserver(
-      (entries) => {
-        const batch = entries.filter((e) => e.isIntersecting);
-        batch
-          .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)
-          .forEach((entry, i) => {
-            entry.target.style.setProperty("--d", `${Math.min(i * 0.09, 0.45)}s`);
-            entry.target.classList.add("is-visible");
-            io.unobserve(entry.target);
-          });
-      },
-      { threshold: 0.12, rootMargin: "0px 0px -6% 0px" }
-    );
-    revealEls.forEach((el) => io.observe(el));
-  }
-
-  /* 数字滚动 */
-  const easeOut = (t) => 1 - Math.pow(1 - t, 3);
-  const animateNum = (el) => {
-    const target = parseFloat(el.dataset.target);
-    const decimals = parseInt(el.dataset.decimals || "0", 10);
-    const suffix = el.dataset.suffix || "";
-    const dur = 1400;
-    const start = performance.now();
-    const tick = (now) => {
-      const p = Math.min((now - start) / dur, 1);
-      el.textContent = (target * easeOut(p)).toFixed(decimals) + suffix;
-      if (p < 1) requestAnimationFrame(tick);
-    };
-    if (prefersReduced) {
-      el.textContent = target.toFixed(decimals) + suffix;
-    } else {
-      requestAnimationFrame(tick);
-    }
-  };
-  const statEls = document.querySelectorAll(".stat-num");
-  if ("IntersectionObserver" in window && !prefersReduced) {
-    const statIO = new IntersectionObserver(
-      (entries) =>
-        entries.forEach((e) => {
-          if (e.isIntersecting) {
-            animateNum(e.target);
-            statIO.unobserve(e.target);
-          }
-        }),
-      { threshold: 0.6 }
-    );
-    statEls.forEach((el) => statIO.observe(el));
-  } else {
-    statEls.forEach((el) => {
-      el.textContent =
-        parseFloat(el.dataset.target).toFixed(parseInt(el.dataset.decimals || "0", 10)) +
-        (el.dataset.suffix || "");
-    });
-  }
-
-  /* 3D 倾斜：指针驱动的透视微动，只在精确指针 + 可 hover 的设备上开 */
-  const canTilt =
-    !prefersReduced && window.matchMedia("(hover: hover) and (pointer: fine)").matches;
-  if (canTilt) {
-    document.documentElement.classList.add("tilt-on");
-    document.querySelectorAll(".card").forEach((el) => {
-      let raf = 0;
-      const apply = (rx, ry, mx, my) => {
-        el.style.setProperty("--rx", `${rx}deg`);
-        el.style.setProperty("--ry", `${ry}deg`);
-        el.style.setProperty("--mx", `${mx}%`);
-        el.style.setProperty("--my", `${my}%`);
-      };
-      el.addEventListener("pointermove", (e) => {
-        const r = el.getBoundingClientRect();
-        const nx = ((e.clientX - r.left) / r.width) * 2 - 1;
-        const ny = ((e.clientY - r.top) / r.height) * 2 - 1;
-        if (raf) return;
-        raf = requestAnimationFrame(() => {
-          raf = 0;
-          apply(-ny * 5.5, nx * 5.5, (nx + 1) * 50, (ny + 1) * 50);
-        });
-      }, { passive: true });
-      el.addEventListener("pointerleave", () => {
-        if (raf) cancelAnimationFrame(raf);
-        raf = 0;
-        apply(0, 0, 50, 50);
-      });
-    });
-  }
-
-  /* 作品录屏：滚到画面里就自己播，离开再停 —— 触屏没有 hover，不能只绑悬停 */
-  const shots = [...document.querySelectorAll(".shot[data-video]")];
-  shots.forEach((shot) => {
-    const vid = shot.querySelector(".shot-vid");
-    let loaded = false;
-    shot._play = () => {
-      if (!loaded) {
-        vid.src = shot.dataset.video;
-        loaded = true;
-      }
-      shot.classList.add("is-playing");
-      const p = vid.play();
-      if (p) p.catch(() => shot.classList.remove("is-playing"));
-    };
-    shot._stop = () => {
-      shot.classList.remove("is-playing");
-      if (loaded) vid.pause();
-    };
-  });
-  if (shots.length && !prefersReduced && "IntersectionObserver" in window) {
-    const shotIO = new IntersectionObserver(
-      (entries) =>
-        entries.forEach((e) => {
-          if (e.isIntersecting) e.target._play();
-          else e.target._stop();
-        }),
-      { threshold: 0.55 }
-    );
-    shots.forEach((s) => shotIO.observe(s));
-  }
-
-  /* 滚动视差：截图在框里反向漂一点，比整页跟着滚要有纵深 */
-  const views = prefersReduced ? [] : [...document.querySelectorAll(".shot-view")];
-  if (views.length) {
-    let ticking = 0;
-    const sync = () => {
-      ticking = 0;
-      const mid = window.innerHeight / 2;
-      views.forEach((v) => {
-        const r = v.getBoundingClientRect();
-        if (r.bottom < 0 || r.top > window.innerHeight) return;
-        const off = ((r.top + r.height / 2 - mid) / window.innerHeight) * 26;
-        v.style.setProperty("--py", `${Math.max(-22, Math.min(22, off)).toFixed(1)}px`);
-      });
-    };
-    window.addEventListener("scroll", () => {
-      if (!ticking) ticking = requestAnimationFrame(sync);
-    }, { passive: true });
-    sync();
-  }
-
-  /* 终端首屏：命令的输出全部现从页面 DOM 里读，
-     改了文案 / 数字，终端不会反过来讲一套假话 */
   const term = document.querySelector(".term");
-  const termBody = document.querySelector(".term-body");
+  const scroller = document.getElementById("term-scroll");
   const termOut = document.getElementById("term-out");
   const termForm = document.getElementById("term-form");
   const termInput = document.getElementById("term-input");
   const termMeasure = document.getElementById("term-measure");
+  const termChips = document.getElementById("term-chips");
+  const motd = document.querySelector(".t-motd");
+  const ttyStatus = document.getElementById("tty-status");
 
   const el = (tag, cls, text) => {
     const node = document.createElement(tag);
@@ -162,36 +22,162 @@
     if (text != null) node.textContent = text;
     return node;
   };
-  const txt = (root, sel) => (root.querySelector(sel) || {}).textContent || "";
-  const norm = (s) => s.trim().toLowerCase().replace(/[/／]$/, "").replace(/[\s·、]+/g, "-");
+  const norm = (s) =>
+    String(s).trim().toLowerCase().replace(/[/／]$/, "").replace(/[\s·、]+/g, "-");
 
-  /* 作品清单以首屏那行 `ls works/` 为准，open 的别名再补上卡片标题。
-     开头缓存一次：命令输出里会出现它的副本，再查 DOM 就成双份了 */
-  const WORK_LINKS = [...document.querySelectorAll(".t-files a")].map((a) => {
-    const row = document.querySelector(a.getAttribute("href"));
-    return {
-      label: a.textContent.trim(),
-      row,
-      name: row ? txt(row, ".work-copy h3").trim() : "",
-      tags: row ? txt(row, ".work-tags").trim() : "",
-      keys: [norm(a.textContent), norm(row ? txt(row, ".work-copy h3") : "")].filter(Boolean),
-    };
-  });
-  const workList = () => WORK_LINKS;
+  /* ---------- 内容源 ---------- */
 
-  const jumpNow = (node) => {
-    if (!node) return;
-    node.scrollIntoView({ behavior: prefersReduced ? "auto" : "smooth", block: "start" });
+  const SEC = {
+    whoami: "sec-whoami",
+    works: "sec-works",
+    skills: "sec-skills",
+    stats: "sec-stats",
+    timeline: "sec-timeline",
+    contact: "sec-contact",
   };
 
-  /* ---------- 跃迁转场 ----------
-     点项目名时铺一层全屏 canvas，画一个真有 z 坐标的粒子场：粒子按透视投影
-     从画面中心往外冲，速度随进度加速，z 越小线越粗越亮，看起来就是被拉长成
-     光条的星。中途页面已经瞬移到目标，淡出时人就站在那儿了。
-     用 2D canvas 手算投影，不为此留一条 WebGL 管线。 */
+  /* 作品清单以 #sec-works 那份为准：open 的名字、别名、模板都从它推出来，
+     加一个项目只要多写一个 <template id="proj-x"> 和在清单里加一行。
+     注意 <template> 的内容是另一棵碎片树，document.querySelectorAll 穿不进去，
+     必须先拿 .content 再查。 */
+  const WORKS_SRC = document.getElementById(SEC.works).content;
+  const PROJECTS = [...WORKS_SRC.querySelectorAll(".t-cmd")]
+    .map((btn) => {
+      const key = btn.dataset.cmd.replace(/^open\s+/, "").trim();
+      const tpl = document.getElementById("proj-" + key);
+      if (!tpl) return null;
+      const h2 = tpl.content.querySelector(".t-h2");
+      const name = (h2 ? h2.firstChild.textContent : key).trim();
+      const dd = btn.parentElement.nextElementSibling;
+      return {
+        key,
+        name,
+        tpl,
+        desc: dd ? dd.textContent.trim() : "",
+        keys: [...new Set([norm(key), norm(name)].filter(Boolean))],
+      };
+    })
+    .filter(Boolean);
+
+  /* 数字旁边的占位 0 只是模板写法，进终端前必须换成终值：
+     终端里没有「等滚动到那一屏才开始」这回事 */
+  const fillNums = (root) => {
+    root.querySelectorAll(".stat-num").forEach((n) => {
+      const dec = parseInt(n.dataset.decimals || "0", 10);
+      n.textContent = parseFloat(n.dataset.target).toFixed(dec) + (n.dataset.suffix || "");
+    });
+  };
+
+  /* 截图变成可键盘触达的放大入口；clone 出来的新节点在这一步一起处理 */
+  const makeShotsFocusable = (root) => {
+    root.querySelectorAll(".t-shot img").forEach((img) => {
+      img.tabIndex = 0;
+      img.setAttribute("role", "button");
+      img.setAttribute("aria-label", "放大这张截图");
+    });
+  };
+
+  const render = (id) => {
+    const frag = document.getElementById(id).content.cloneNode(true);
+    fillNums(frag);
+    makeShotsFocusable(frag);
+    return frag;
+  };
+
+  /* 把「建议下一条命令」写成能点的：报错不该只让人自己去猜 */
+  const suggest = (prefix, names) => {
+    const p = el("p", "t-dim");
+    p.append(prefix);
+    names.forEach((c, i) => {
+      if (i) p.append("　");
+      const b = el("button", "t-cmd", c);
+      b.type = "button";
+      b.dataset.cmd = c;
+      p.append(b);
+    });
+    return p;
+  };
+
+  /* ---------- 滚动与放大层 ---------- */
+
+  const atBottom = () =>
+    scroller.scrollHeight - scroller.scrollTop - scroller.clientHeight < 56;
+
+  const scrollBottom = () =>
+    scroller.scrollTo({ top: scroller.scrollHeight, behavior: prefersReduced ? "auto" : "smooth" });
+
+  /* 案例块比一屏高，贴到底等于只露出它的尾巴；这类块对齐到顶，短的仍滚到底 */
+  const placeBlock = (block) => {
+    const r = block.getBoundingClientRect();
+    const s = scroller.getBoundingClientRect();
+    if (r.height > scroller.clientHeight - 40) {
+      scroller.scrollTop = Math.max(0, scroller.scrollTop + (r.top - s.top) - 12);
+    } else {
+      scroller.scrollTop = scroller.scrollHeight;
+    }
+  };
+
+  let lb, lbClose, lbBack;
+  const lbOpen = (shot, opener) => {
+    lb.querySelectorAll("img, video").forEach((n) => {
+      if (n.tagName === "VIDEO") n.pause();
+      n.remove();
+    });
+    const src = shot.dataset.video;
+    let media;
+    if (src) {
+      media = el("video");
+      media.src = src;
+      media.controls = true;
+      media.autoplay = true;
+      media.loop = true;
+      media.playsInline = true;
+    } else {
+      const img = shot.querySelector("img");
+      media = el("img");
+      media.src = img.currentSrc || img.src;
+      media.alt = img.alt;
+    }
+    lb.append(media);
+    lb.hidden = false;
+    lbBack = opener;
+    requestAnimationFrame(() => lb.classList.add("is-on"));
+    lbClose.focus();
+  };
+
+  const lbCloseFn = () => {
+    if (lb.hidden) return;
+    lb.querySelectorAll("video").forEach((v) => v.pause());
+    lb.classList.remove("is-on");
+    setTimeout(() => {
+      if (!lb.classList.contains("is-on")) lb.hidden = true;
+      lb.querySelectorAll("img, video").forEach((n) => n.remove());
+    }, 280);
+    if (lbBack && term.contains(lbBack)) lbBack.focus();
+    lbBack = null;
+  };
+
+  /* 挂在 <body> 下：.term-foot 有 backdrop-filter，会成为 fixed 后代的包含块 */
+  lb = el("div", "lb");
+  lb.hidden = true;
+  lb.setAttribute("role", "dialog");
+  lb.setAttribute("aria-modal", "true");
+  lb.setAttribute("aria-label", "放大查看运行截图");
+  lbClose = el("button", "lb-close", "×");
+  lbClose.type = "button";
+  lbClose.setAttribute("aria-label", "关闭放大视图");
+  lbClose.addEventListener("click", lbCloseFn);
+  lb.append(lbClose);
+  lb.addEventListener("click", (e) => {
+    if (e.target === lb) lbCloseFn();
+  });
+  document.body.append(lb);
+
+  /* ---------- 跃迁转场（频道切换，不再滚动页面）---------- */
+
   const WARP_COLORS = ["#0a84ff", "#bf5af2", "#ff375f", "#ff9f0a", "#64d2ff", "#30d158"];
-  const WARP_TRAVEL = 640;
-  const WARP_HOLD = 420;
+  const WARP_TRAVEL = 300;
+  const WARP_HOLD = 170;
   let warping = false;
 
   const spawnStar = (fresh) => ({
@@ -201,17 +187,13 @@
     c: WARP_COLORS[(Math.random() * WARP_COLORS.length) | 0],
   });
 
-  const warpTo = (node) => {
-    if (warping) return;
+  const warp = (swap) => {
+    if (warping || prefersReduced || !window.requestAnimationFrame) return swap();
     warping = true;
 
-    const cv = document.createElement("canvas");
-    cv.className = "warp";
+    const cv = el("canvas", "warp");
     cv.setAttribute("aria-hidden", "true");
-    /* 灭点做成 DOM 层：canvas 每帧只盖 30% 底色来叠拖尾，
-       中心光晕画在里面的话会被几十帧累加成一团雾，画在层外才是稳定的亮 */
-    const core = document.createElement("div");
-    core.className = "warp-core";
+    const core = el("div", "warp-core");
     core.setAttribute("aria-hidden", "true");
     document.body.append(core, cv);
     const ctx = cv.getContext && cv.getContext("2d");
@@ -221,11 +203,11 @@
       setTimeout(() => {
         cv.remove();
         core.remove();
-      }, 320);
+      }, 300);
       warping = false;
     };
     if (!ctx) {
-      jumpNow(node);
+      swap();
       end();
       return;
     }
@@ -239,8 +221,9 @@
     const cx = W / 2;
     const cy = H / 2;
     const fl = Math.min(W, H) * 0.62;
-    const stars = Array.from({ length: Math.round(Math.min(1300, Math.max(520, (W * H) / 1250))) }, () =>
-      spawnStar(true)
+    const stars = Array.from(
+      { length: Math.round(Math.min(1300, Math.max(520, (W * H) / 1250))) },
+      () => spawnStar(true)
     );
     const px = (s) => cx + (s.x / s.z) * fl;
     const py = (s) => cy + (s.y / s.z) * fl;
@@ -253,7 +236,7 @@
     ctx.fillRect(0, 0, W, H);
 
     const t0 = performance.now();
-    let jumped = false;
+    let swapped = false;
     requestAnimationFrame(function frame(now) {
       const p = Math.min((now - t0) / (WARP_TRAVEL + WARP_HOLD), 1);
       const v = 1.5 + 4.6 * p * p;
@@ -293,132 +276,96 @@
       ctx.restore();
       ctx.globalAlpha = 1;
 
-      if (!jumped && now - t0 >= WARP_TRAVEL) {
-        jumped = true;
-        node.scrollIntoView({ behavior: "auto", block: "start" });
+      if (!swapped && now - t0 >= WARP_TRAVEL) {
+        swapped = true;
+        swap();
       }
       if (p < 1) requestAnimationFrame(frame);
       else end();
     });
   };
 
-  /* 只有作品行配得上这段跃迁：跳到轨迹 / 联系用普通滚动 */
-  const isWorkRow = (node) =>
-    !!node && (node.classList.contains("work-row") || node.id === "work");
-
-  const jump = (node) => {
-    if (!node) return;
-    if (!isWorkRow(node) || prefersReduced) return jumpNow(node);
-    warpTo(node);
-  };
-
-  /* 首屏那行 ls works/ 的链接、命令输出里 cloneNode 出来的副本，都走同一条委托，
-     新节点不用重新绑事件 */
-  document.addEventListener("click", (e) => {
-    const a = e.target.closest("a[href^='#']");
-    if (!a) return;
-    const hit = document.querySelector(a.getAttribute("href"));
-    if (!isWorkRow(hit)) return;
-    e.preventDefault();
-    jump(hit);
-  });
+  /* ---------- 命令 ---------- */
 
   const cmds = {
     help: (b) => {
-      const grid = el("div", "t-cols");
+      const grid = el("dl", "t-cols");
       [
         ["whoami", "我是做什么的"],
-        ["works", "列作品（可 open <名字>）"],
+        ["works", "作品清单（可 open <名字>）"],
         ["skills", "能力清单"],
+        ["stats", "页面上的数字与量它的命令"],
         ["timeline", "轨迹"],
-        ["stats", "页面上的数字"],
         ["contact", "联系方式"],
+        ["ls", "整站的文件清单"],
         ["clear", "清空屏幕"],
       ].forEach(([k, v]) => {
-        grid.append(el("dt", null, k), el("dd", null, v));
+        const dt = el("dt");
+        const btn = el("button", "t-cmd", k);
+        btn.type = "button";
+        btn.dataset.cmd = k;
+        dt.append(btn);
+        grid.append(dt, el("dd", null, v));
       });
-      b.append(grid, el("p", "t-dim", "↑↓ 翻历史 · Tab 补全 · 点击建议词也行"));
+      b.append(grid, el("p", "t-dim", "↑↓ 翻历史 · Tab 补全 · Ctrl-L 清屏 · 点建议词也行"));
     },
 
-    whoami: (b) => {
-      const meta = txt(document.querySelector(".term"), ".t-meta");
-      const desc = txt(document.querySelector(".term"), ".t-desc").replace(/\s+/g, " ").trim();
-      b.append(el("p", "t-ok", "caoqu"), el("p", null, meta), el("p", "t-dim", desc));
-    },
+    whoami: (b) => b.append(el("p", "t-ok", "caoqu"), render(SEC.whoami)),
 
-    ls: (b) => b.append(document.querySelector(".t-files").cloneNode(true)),
-    works: (b) => {
-      workList().forEach((w) => b.append(jumpLine(w.label.replace(/\/$/, ""), w.row, w.tags)));
-      b.append(el("p", "t-dim", "open <名字> 直接跳过去"));
+    works: (b) => b.append(render(SEC.works)),
+    skills: (b) => b.append(render(SEC.skills)),
+    stats: (b) => b.append(render(SEC.stats)),
+    timeline: (b) => b.append(render(SEC.timeline)),
+    contact: (b) => b.append(render(SEC.contact)),
+
+    ls: (b, arg) => {
+      const q = norm(arg);
+      if (!arg) {
+        b.append(
+          el("p", "t-out", "index.html   main.js   style.css"),
+          el("p", "t-dim", "整站就这三个文件：没有 node_modules，也没有构建步骤")
+        );
+        return;
+      }
+      if (q === "works" || q === "works-") {
+        const files = motd.querySelector(".t-files").cloneNode(true);
+        /* 开机动画可能正盖着 t-wait，克隆体不能带着「隐藏」出厂 */
+        files.querySelectorAll(".t-wait").forEach((n) => n.classList.remove("t-wait"));
+        b.append(files);
+        return;
+      }
+      return el("p", "t-err", `ls: ${arg}: No such file or directory`);
     },
 
     open: (b, arg) => {
-      if (!arg) return el("p", "t-hl", "用法：open <作品名>　例如 open flow-studio");
+      if (!arg) {
+        return suggest("用法：open <作品名>　例如", [
+          "open flow-studio",
+          "open 美图工坊",
+        ]);
+      }
       const q = norm(arg);
-      const hit = workList().find((w) => w.keys.some((k) => k.startsWith(q)));
-      if (!hit) return el("p", "t-err", `open: no such file or directory: ${arg}`);
-      jump(hit.row);
-      return el("p", "t-ok", `→ ${hit.name}`);
-    },
-
-    skills: (b) => {
-      [...document.querySelectorAll("#skills .card h3")].forEach((h) =>
-        b.append(jumpLine(h.textContent.trim(), h.closest(".card")))
-      );
-    },
-
-    timeline: (b) => {
-      [...document.querySelectorAll(".t-row")].forEach((row) => {
-        const line = el("p");
-        line.append(
-          el("span", "t-link", txt(row, ".t-year").trim()),
-          el("span", null, "  " + txt(row, ".t-body h3").trim())
-        );
-        b.append(line);
+      const hit = PROJECTS.find((w) => w.keys.some((k) => k.startsWith(q)));
+      if (!hit) {
+        b.append(el("p", "t-err", `open: no such project: ${arg}`));
+        return suggest("可选项：", PROJECTS.map((w) => `open ${w.key}`));
+      }
+      const block = el("div", "t-block");
+      const frag = hit.tpl.content.cloneNode(true);
+      fillNums(frag);
+      makeShotsFocusable(frag);
+      block.append(frag);
+      warp(() => {
+        termOut.append(block);
+        placeBlock(block);
       });
-      b.append(jumpLine("→ 跳到轨迹", document.getElementById("journey")));
+      return el("p", "t-ok", `→ ${hit.name}　${hit.desc}`);
     },
 
-    stats: (b) => {
-      const grid = el("div", "t-cols");
-      [...document.querySelectorAll(".stat")].forEach((s) => {
-        const n = s.querySelector(".stat-num");
-        /* 数字要滚到那一屏才开始滚：终端读 data-target，别把动画中间帧的 0 报出去 */
-        const val =
-          n && n.dataset.target !== undefined
-            ? parseFloat(n.dataset.target).toFixed(
-                parseInt(n.dataset.decimals || "0", 10)
-              ) + (n.dataset.suffix || "")
-            : txt(s, ".stat-num").trim();
-        grid.append(el("dt", "t-hl", val), el("dd", null, txt(s, ".stat-label").trim()));
-      });
-      b.append(grid, el("p", "t-dim", "每个数字旁边都写了量它的命令，可以自己复算"));
-    },
-
-    contact: (b) => {
-      document.querySelectorAll(".contact-links a").forEach((a) => {
-        const p = el("p");
-        p.append(
-          el("span", null, a.textContent.replace("›", "").trim()),
-          el("span", "t-dim", "  " + (/^https?:/.test(a.href) ? a.href : a.getAttribute("href")))
-        );
-        b.append(p);
-      });
-      b.append(jumpLine("→ 跳到联系区", document.getElementById("contact")));
-    },
+    uptime: () => el("p", null, `up ${fmtUptime()}, 零依赖, 1 user`),
 
     date: () => el("p", null, new Date().toString()),
   };
-
-  function jumpLine(label, target, note) {
-    const p = el("p");
-    const btn = el("button", "t-jump", label);
-    btn.type = "button";
-    btn.addEventListener("click", () => jump(target));
-    p.append(btn);
-    if (note) p.append(el("span", "t-dim", "  " + note.replace(/\s+/g, " ").trim()));
-    return p;
-  }
 
   /* #term-out 里只有跑出来的东西，欢迎语在 .t-motd：整块清空就是清屏 */
   const clearScreen = () => termOut.replaceChildren();
@@ -428,6 +375,7 @@
     const arg = rest.join(" ");
     if (!name) return;
     if (name === "clear") return clearScreen();
+
     const b = el("div", "t-block");
     termOut.append(b);
 
@@ -435,6 +383,11 @@
       return void b.append(
         el("p", "t-err", "caoqu is not in the sudoers file. This incident will be reported."),
         el("p", "t-dim", "而且就算报了也没用——内部系统的截图和数据都不外传。")
+      );
+    if (/^rm/.test(name))
+      return void b.append(
+        el("p", "t-hl", "rm: 这里没有可删的东西。整站三个文件，删了就没站了。"),
+        el("p", "t-dim", "真要清理的是我知识库里那些过期的数字。")
       );
     if (/^(vim|vi|nano|emacs)$/.test(name))
       return void b.append(el("p", "t-hl", "这台机器没装编辑器。整站零依赖，所以我也不装。"));
@@ -444,6 +397,7 @@
       );
     if (/^(exit|quit|logout)$/.test(name))
       return void b.append(el("p", "t-dim", "这不是一个真会话，关掉标签页就行。"));
+
     if (cmds[name]) {
       const ret = cmds[name](b, arg);
       if (ret) b.append(ret);
@@ -451,7 +405,7 @@
     }
     b.append(
       el("p", "t-err", `zsh: command not found: ${name}`),
-      el("p", "t-dim", "试试 help、works、open flow-studio")
+      suggest("试试：", ["help", "works", "open flow-studio"])
     );
   };
 
@@ -460,8 +414,10 @@
     line.append(el("span", "t-prompt", "caoqu@local:~$"), document.createTextNode(raw));
     termOut.append(line);
     run(raw);
-    termOut.scrollTop = termOut.scrollHeight;
+    if (!atBottom()) scrollBottom();
   };
+
+  /* ---------- 输入 ---------- */
 
   const history = [];
   let cursor = 0;
@@ -479,6 +435,7 @@
   });
 
   const ALL_CMDS = [...Object.keys(cmds), "clear", "help", "sudo", "exit"];
+
   termInput.addEventListener("keydown", (e) => {
     if (e.key === "ArrowUp" || e.key === "ArrowDown") {
       if (!history.length) return;
@@ -513,43 +470,83 @@
   termInput.addEventListener("input", fitInput);
   fitInput();
 
-  document.querySelectorAll("#term-chips button").forEach((btn) =>
-    btn.addEventListener("click", () => {
-      termInput.focus();
-      runAndShow(btn.dataset.cmd);
-    })
-  );
+  /* 首屏项目名、建议词、help 清单、报错里的可选项、ls 的克隆体——
+     全走这一条委托，clone 出来的新节点不用重新绑 */
+  document.addEventListener("click", (e) => {
+    const btn = e.target.closest("[data-cmd]");
+    if (!btn) return;
+    bootFinish();
+    demoStop();
+    runAndShow(btn.dataset.cmd);
+  });
 
-  term.addEventListener("focusin", () => term.classList.add("is-focused"));
-  term.addEventListener("focusout", () => term.classList.remove("is-focused"));
+  /* 截图放大：同样用委托，块是 clone 出来的 */
+  const shotOf = (node) => {
+    const img = node.closest(".t-shot img");
+    return img ? img.closest(".t-shot") : null;
+  };
+  termOut.addEventListener("click", (e) => {
+    const shot = shotOf(e.target);
+    if (!shot) return;
+    lbOpen(shot, e.target);
+  });
+  termOut.addEventListener("keydown", (e) => {
+    if (e.key !== "Enter" && e.key !== " ") return;
+    const shot = shotOf(e.target);
+    if (!shot) return;
+    e.preventDefault();
+    lbOpen(shot, e.target);
+  });
+
+  /* ---------- 标题栏：红绿灯是真的窗口按钮 ---------- */
+
+  term.querySelectorAll(".t-dot").forEach((dot) => {
+    dot.addEventListener("click", () => {
+      bootFinish();
+      demoStop();
+      const act = dot.dataset.dot;
+      if (act === "clear") clearScreen();
+      else if (act === "min") term.classList.add("is-min");
+      else if (act === "max") {
+        term.classList.remove("is-min");
+        scrollBottom();
+      }
+    });
+  });
+
+  const started = Date.now();
+  const pad = (n) => String(n).padStart(2, "0");
+  const fmtUptime = () => {
+    const s = Math.floor((Date.now() - started) / 1000);
+    if (s < 60) return `${s}s`;
+    if (s < 3600) return `${Math.floor(s / 60)}m${pad(s % 60)}s`;
+    return `${Math.floor(s / 3600)}h${pad(Math.floor((s % 3600) / 60))}m`;
+  };
+  const tickStatus = () => {
+    const d = new Date();
+    const off = -d.getTimezoneOffset() / 60;
+    const clock = prefersReduced
+      ? `${pad(d.getHours())}:${pad(d.getMinutes())}`
+      : `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+    ttyStatus.textContent = `${clock} UTC${off >= 0 ? "+" : "-"}${Math.abs(off)} · up ${fmtUptime()}`;
+  };
+  tickStatus();
+  setInterval(tickStatus, prefersReduced ? 60000 : 1000);
+
   /* 手机上点终端别弹键盘，读东西比敲命令重要 */
   if (window.matchMedia("(hover: hover) and (pointer: fine)").matches)
-    termBody.addEventListener("pointerdown", (e) => {
-      if (e.target.closest("a, button")) return;
+    scroller.addEventListener("pointerdown", (e) => {
+      if (e.target.closest("a, button, [role=button]")) return;
       termInput.focus();
     });
 
-  /* ---------- 门牌打字机 + 自动演示 ----------
+  /* ---------- 门牌打字机 ----------
      首屏那段门牌不是贴上去的字，是当场敲出来的；打完之后终端自己敲一串命令循环演示，
      来访者一碰键盘、一点屏幕就把控制权交回去，从此不再自动打。
      隐藏状态由 JS 挂类才开始，脚本没跑或直接报错都只会退化成完整静态内容。 */
-  const motd = document.querySelector(".t-motd");
-  const termChips = document.getElementById("term-chips");
   let bootTimers = [];
   let booted = false;
   let bootStarted = false;
-
-  const bootFinish = () => {
-    if (booted) return;
-    booted = true;
-    bootTimers.forEach(clearTimeout);
-    bootTimers = [];
-    term.querySelectorAll(".t-wait").forEach((n) => n.classList.remove("t-wait"));
-    motd.querySelectorAll(".t-ch").forEach((n) => n.classList.add("on"));
-    const caret = motd.querySelector(".t-boot-caret");
-    if (caret) caret.remove();
-    startDemo();
-  };
 
   const startBoot = () => {
     if (bootStarted || booted) return;
@@ -603,7 +600,7 @@
         );
         acts.push({ ms: 190, fn: () => caret.remove() });
       } else if (node.classList.contains("t-files")) {
-        [...node.querySelectorAll("a")].forEach((a) => {
+        [...node.querySelectorAll("button")].forEach((a) => {
           wait(a);
           acts.push({ ms: 65, fn: () => a.classList.remove("t-wait") });
         });
@@ -633,22 +630,33 @@
     setTimeout(bootFinish, 8000);
   };
 
+  const bootFinish = () => {
+    if (booted) return;
+    booted = true;
+    bootTimers.forEach(clearTimeout);
+    bootTimers = [];
+    term.querySelectorAll(".t-wait").forEach((n) => n.classList.remove("t-wait"));
+    motd.querySelectorAll(".t-ch").forEach((n) => n.classList.add("on"));
+    const caret = motd.querySelector(".t-boot-caret");
+    if (caret) caret.remove();
+    startDemo();
+  };
+
   /* ---------- 自动演示 ----------
      一串真命令轮流敲：命令字符逐个进输入行（绿光标表示不是人在打），
      回车后走的是和用户手敲完全同一条 run() 路径，所以输出永远是页面真数据。
-     敲完一轮 clear 再从头来；标签页切走或首屏滚出视野就原地 parked，回来续上。 */
+     敲完一轮 clear 再从头来。标签页切走、或者人已经往上翻回去读东西了，就原地 parked。 */
   const DEMO_CMDS = ["whoami", "ls works/", "stats", "skills", "clear"];
   let demoTimer = 0;
   let demoIdx = 0;
   let demoOn = !prefersReduced;
-  let demoInView = true;
   let waitResume = null;
 
   const later = (fn, ms) => {
     clearTimeout(demoTimer);
     demoTimer = setTimeout(() => {
       if (!demoOn) return;
-      if (!demoInView || document.hidden) {
+      if (document.hidden || !atBottom()) {
         termForm.classList.remove("is-demo");
         waitResume = fn;
         return;
@@ -658,7 +666,7 @@
   };
 
   const resumeDemo = () => {
-    if (!demoOn || waitResume === null || !demoInView || document.hidden) return;
+    if (!demoOn || waitResume === null || document.hidden || !atBottom()) return;
     const fn = waitResume;
     waitResume = null;
     fn();
@@ -691,7 +699,7 @@
         termInput.value = "";
         fitInput();
         runAndShow(cmd);
-        later(demoStep, cmd === "clear" ? 780 : 1600);
+        later(demoStep, cmd === "clear" ? 780 : 1800);
       }, 300);
     };
     type();
@@ -705,47 +713,43 @@
   }
 
   if (demoOn) {
+    scroller.addEventListener("scroll", resumeDemo, { passive: true });
     document.addEventListener(
-      "keydown",
-      (e) => {
-        bootFinish();
-        demoStop();
-        if (e.key.length === 1 && !e.metaKey && !e.ctrlKey && !e.altKey) termInput.focus();
-      },
-      { capture: true }
-    );
-    term.addEventListener(
-      "pointerdown",
+      "visibilitychange",
       () => {
-        bootFinish();
-        demoStop();
+        if (document.hidden) bootFinish();
+        else resumeDemo();
       },
       { capture: true }
     );
-    /* 后台标签页的 setTimeout 会被限流到 1s：切回来时不该还剩半行没敲 */
-    document.addEventListener("visibilitychange", () => {
-      if (document.hidden) bootFinish();
-      else resumeDemo();
-    });
   }
 
-  if ("IntersectionObserver" in window) {
-    const bootIo = new IntersectionObserver(
-      (entries) => {
-        const seen = entries.some((en) => en.isIntersecting);
-        demoInView = seen;
-        if (seen) {
-          if (!bootStarted) startBoot();
-          resumeDemo();
-        }
-      },
-      { threshold: [0, 0.3] }
-    );
-    bootIo.observe(term);
-  } else {
-    startBoot();
-  }
+  document.addEventListener(
+    "keydown",
+    (e) => {
+      if (!lb.hidden && e.key === "Escape") {
+        lbCloseFn();
+        return;
+      }
+      if (lb.hidden && !e.metaKey && !e.ctrlKey && !e.altKey && e.key.length === 1) {
+        bootFinish();
+        demoStop();
+        termInput.focus();
+      }
+    },
+    { capture: true }
+  );
+  term.addEventListener(
+    "pointerdown",
+    () => {
+      bootFinish();
+      demoStop();
+    },
+    { capture: true }
+  );
 
-  /* 页脚年份 */
-  document.getElementById("year").textContent = new Date().getFullYear();
+  /* 一屏终端没有「滚进视野」这回事：可见就开机，不可见只是标签页在后台。
+     门牌打字机本身就是动效，要求降低动效时直接落到终态，不靠 CSS 兜。 */
+  if (prefersReduced) bootFinish();
+  else startBoot();
 })();

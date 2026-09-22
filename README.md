@@ -1,48 +1,81 @@
 # Caoqu — 个人主页
 
-仿 Apple 设计风格的个人网站：整屏终端首屏、苹果系统配色与字体栈、跃迁式跳转。
-纯静态三件套（`index.html` + `style.css` + `main.js`），零依赖、无构建、无后端。
+**整站就是一屏终端。** 页面本身不滚动，没有导航、没有长页、没有区块锚点：想看点什么，就在终端里敲命令或者点建议词，内容直接打进这块屏。仿 Apple 系统配色与等宽字体栈，纯静态三件套（`index.html` + `style.css` + `main.js`），零依赖、无构建、无后端。
 
-## 终端首屏
+## 一屏终端的结构
 
-首屏就是**一整台终端**，没有导航条（`.hero` 固定 `height:100svh`，`.term-full` 铺满它）：
+`.term` 是一个 `height:100svh` 的 flex 列，三段：
 
-- 标题栏是终端自己的 `.term-bar`：红绿灯三个点靠左排，右边 `caoqu@local — zsh — portfolio`。全站没有 `<nav>`，去别的区块靠往下滚、或终端里输命令。
-- `.term-body` 自己 `overflow-y:auto`，但**故意不加** `overscroll-behavior: contain`：终端滚到底就该把滚动交给页面，一个占满首屏的嵌套滚动区最怕的就是滚不出去。同理这里不用 `min-height`——内容一多首屏就会被撑成两屏，变成一个往下滚不动的坑。
-- 屏内分两块：`.t-motd` 是开场一次性敲出来的门牌（`flex:none`，永远不会被顶出屏幕），`#term-out` 是自动演示与用户输出的滚动区。
-- 命令的输出**全部现从页面 DOM 里读**——`works` 读首屏那行 `ls works/` 的链接、`skills` 读 `#skills .card h3`、`stats` 读 `.stat`、`timeline` 读 `.t-row`。改了文案或数字，终端不会反过来讲一套假话。
-  例外是 `stats`：它读 `.stat-num[data-target]` 而不是文本，因为页面上那些数字要滚到那一屏才开始往上滚，读文本会在首屏报出一串 `0`。
-- 支持 `help / whoami / ls / works / open <名字> / skills / timeline / stats / contact / date / clear`，↑↓ 翻历史、Tab 补全、Ctrl-L 清屏；`open` 的别名同时接受 `flow-studio`、`flow`、`Flow Studio`。
+- **`.term-bar`（42px）**：左边红绿灯三个点，中间 `caoqu@local — zsh — portfolio`，右边 `HH:MM:SS UTC±N · up 6s`。
+- **`.term-scroll#term-scroll`（`flex:1;min-height:0;overflow-y:auto`）**：唯一的滚动区，里面是 `.t-motd` 门牌 + `#term-out` 命令输出。
+- **`.term-foot`**：输入行和建议词，钉在底部不跟着内容滚。
+
+几个刻意的选择：
+
+- `body{overflow:hidden}`——一屏之后没有东西可滚，留着滚动条只会让人以为下面还有内容。
+- `.term-scroll` **要加** `overscroll-behavior:contain`。这条和老版（终端只占首屏、下面还有长页）正好反了：那时滚到底必须把滚动交还给页面，否则变成一个滚不出去的坑；现在外层根本没有可交给的滚动容器，contain 只是防止 rubber-band 传到 `<body>` 上把整屏抖一下。
+- `.term-foot` 用了 `backdrop-filter`，于是它成了后代元素的**包含块**——灯箱和跃迁层这类要盖全屏的浮层必须挂到 `document.body`，挂在 `.term` 里会被 footer 圈住。
+- 红绿灯是真功能不是装饰：红 = 清屏，黄 = 收起输出只留输入行（`.term.is-min`），绿 = 展开并滚到底。`(hover: hover)` 下悬停才显出 `× − ＋`（`content: attr(data-glyph)`），触屏上它们是直接可点的按钮。
+- 标题栏右侧的时间是**访问者自己的时区**，`up` 是这一页真实打开多久；不是写死的字符串。
+
+## 内容源：<template>
+
+命令的输出全部从页面底部一组 `<template id="sec-*" / "proj-*">` 里 `cloneNode(true)` 出来。用 template 是因为它是惰性的：不渲染、图也不发请求，所以「案例正文写在 HTML 里、终端只是搬进屏」不用拿「页面上摊一整屏长文」去换。改文案改模板就行，不用碰 `main.js`，终端也就没法反过来讲一套假话。
+
+- **坑**：`<template>` 的内容是一棵独立的碎片树，`document.querySelectorAll("#sec-works .t-cmd")` **穿不进去**，返回空列表。必须先 `getElementById(id).content` 再查。这个坑的症状很隐蔽——项目列表读不出来，`open flow-studio` 一律报 "no such project"，而建议词列表是空的。
+- clone 之后还要过两道加工：`fillNums()` 把 `.stat-num[data-target]` 的数字填进文本，`makeShotsFocusable()` 给 `.t-shot img` 补 `tabindex=0` + `role=button`。
+- 数字**不做滚动进场计数**：终端里没有「滚到那一屏才开始」这回事，一 `render` 就是终值。老版页面上那些 `.stat` 是 IntersectionObserver 驱动滚到才涨的，所以命令读文本会在首屏报出一串 `0`——现在读 `data-target`。
+
+## 命令
+
+`help / whoami / works / ls / ls works/ / open <名字> / skills / timeline / stats / contact / date / uptime / clear`。↑↓ 翻历史、Tab 补全、Ctrl-L 清屏。`open` 的别名同时接受 `flow-studio`、`flow`、`Flow Studio`。
+
+- 错误和建议文案里提到的命令名都是**真按钮**：`help` 的每一条、报错里的 `试试：help / works / open flow-studio`、`ls works/` 的项目名、footer 的建议词，全部带 `data-cmd`，由 `document` 上一个代理 click 监听统一执行。所以整屏不需要打字也能走通。
+- 只有一个命令例外地不读模板：`ls`。裸 `ls` 报的是 `index.html main.js style.css` 三个真实文件名（整站就这三个文件），`ls works/` 才 clone 门牌里那份项目列表。
+- 彩蛋：`sudo`、`vim/vi/nano/emacs`、`npm/yarn/pnpm/node`、`exit/quit/logout`、`rm`。
 - 用户输入一律走 `textContent` 建节点，不拼 HTML 字符串。
-- `<head>` 里一行内联脚本给 `<html>` 加 `.js`；没有 JS 时输入行和建议词整块隐藏，只留静态欢迎语。
 - `<input>` 没有自适应宽度：用一个 `visibility:hidden` 的 span 量当前文本再写回 `width`，空着时量 placeholder，否则提示语会被切掉半个汉字。
-- 开机动画：终端进视口后把欢迎语逐字敲出来，绿色方块光标跟着字符前进，输出整行依次打印，最后才亮出输入行和建议词（约 2.3s）。隐藏只改 `visibility` / `opacity`，布局从第一帧起就是终态，所以打字时下方内容不会上下跳；命令行的提示符也一起等轮到自己，否则屏上会先挂着两个后面空着的 `caoqu@local:~$`。按任意键、点终端、切到后台标签页都会立刻补完到终态（后台 `setTimeout` 被限流到 1s，不该剩半屏没打完）；`prefers-reduced-motion` 整段跳过，JS 没跑则由 `.t-wait` 根本不挂载来兜底，另有一个 8s 强制完成定时器。
-- 开机动画放完后进入**自动演示循环**：自己敲 `whoami` → `ls works/` → `stats` → `skills` → `clear`，无限循环。演示期间光标常亮绿色（`.is-demo`），一眼看得出不是人在打；`aria-live` 同时关掉，否则读屏会被无限念的命令淹掉。真实按键或点击终端即交还控制权（`demoStop()` 清掉输入框、恢复 `aria-live: polite`）。滚出视口或标签页切后台时挂起，回来接着上一步，不会留半截命令在屏上。循环里**故意不放** `open` / `works` 这类会跳路的命令——无人值守时不该动页面滚动位置。
+
+## 案例与截图
+
+`open flow-studio` 会先把那段跃迁当转场，再把案例块打进输出区：标题、一句话讲清它在干什么、一张**真实运行截图**、三条要点、最底下写清量它的命令。
+
+- 截图是终端内嵌的图框（`.t-shot`），点一下开灯箱；如果这个 `<figure>` 有 `data-video`，灯箱里播的是真录屏（`<video controls autoplay loop>`），没有就放大原图。灯箱关闭会把焦点还给打开它的那张图。
+- 老版那套「滚到视口 55% 自动播放、离开暂停」的 IntersectionObserver 没有了——一屏没有滚动进场这回事，视频只在人点开时才下载并播放，首屏一个字节都不多花。
+- 竖屏项目（美图工坊）用 `.t-shot.is-phone`：图窄框宽是故意的，画框当展台，手机当产品照摆在中间，`object-fit:contain` 加圆角和投影。横屏截图仍是 `cover` 裁进 16:10 框里。
+- 素材本身没变：`assets/` 是真实运行截图与录屏。截图用 Playwright 起本地服务后 `full_page` 抓取、裁成 16:10（竖屏保留 760×1590）转 progressive JPEG；录屏用 Playwright `record_video_dir` 出 webm，再 `ffmpeg -c:v libx264 -crf 27 -pix_fmt yuv420p -movflags +faststart -an` 转 mp4 并剪掉开头空几秒。
+- 每个数字旁边都写了量它的命令（`.t-run` / `.t-by`，如 `pytest --collect-only -q` → 223）。数字会过期，命令不会——改数之前先把命令重跑一遍。
 
 ## 跃迁转场
 
-点首屏 `ls works/` 里的项目名（以及终端输出里 clone 出来的同名链接），会先播一段 3D 超空间跃迁再落到那一行作品：
+原来那段 3D 超空间跃迁是用来配合长页跳转的，现在缩短成**换台**：`WARP_TRAVEL = 300` + `WARP_HOLD = 170`，共约 470ms，粒子从相机前方掠过后在尾段叠一层底色淡出。全程**不动页面滚动位置**——只负责「内容换了」这个知觉。
 
-- `warpTo()` 造一层全屏 `canvas.warp`，粒子是 `{x, y, z, color}` 三维坐标，用 `sx = cx + x/z * fl` 透视投影，所以是真实的纵深而不是画斜线。越近的粒子越粗越亮，分两层描边（宽而淡的当辉光、窄而亮的当核心），叠加 `globalCompositeOperation = "lighter"`。
-- 拖尾靠每帧盖一层 `rgba(9,9,18,.3)` 半透明底色自然叠出来，比逐条记录尾迹省得多。相机随进度 `rotate` 轻微翻滚，落点用 `scrollIntoView` 在跃迁尾段一次性对齐。
-- **灭点画在 DOM 层**（`.warp-core`）而不是 canvas 里：canvas 每帧只叠 30% 底色，画在里面的光晕会被几十帧累加成一团糊住半屏的灰雾。这层压在 canvas 之上（canvas 底是不透明的，压在它后面等于没有）、用 `mix-blend-mode: screen` 加光，尺寸写死在 `vmin` 里所以始终是一个「点」。
-- 只有作品行配得上这段跃迁：跳到轨迹 / 联系走普通 `scrollIntoView`。`prefers-reduced-motion` 下整段跳过，CSS 里 `.warp, .warp-core { display:none }` 兜住。
+- 粒子还是 `{x, y, z, color}` 三维坐标，`sx = cx + x/z * fl` 透视投影，所以是真纵深不是斜线；近处更粗更亮，宽而淡的一层当辉光、窄而亮的一层当核心，叠加 `globalCompositeOperation = "lighter"`。
+- 拖尾靠每帧盖一层 `rgba(9,9,18,.3)` 半透明底色叠出来。**灭点仍然画在 DOM 层**（`.warp-core`）而不是 canvas 里：canvas 每帧只叠 30% 底色，画在里面的光晕会被几十帧累加放大到约 3.3 倍稳态，糊成一片盖住半屏的灰雾。这层压在 canvas 之上（canvas 底不透明，压在它后面等于没有），用 `mix-blend-mode: screen` 加光，尺寸写死在 `vmin` 里所以始终是一个「点」。
+- `prefers-reduced-motion`、拿不到 `requestAnimationFrame`、或上一段还没播完时直接执行回调不播粒子。
 
-## 3D 部分
+## 开机动画与自动演示
 
-- 卡片 3D 倾斜：`main.js` 检测 `(hover: hover) and (pointer: fine)` 后给 `<html>` 加 `.tilt-on`，指针驱动 `perspective + rotateX/rotateY` 与跟随高光；触屏与降级偏好下不启用。
+- 终端一挂载就把欢迎语逐字敲出来，绿色方块光标跟着字符前进，输出整行依次打印，最后才亮出输入行和建议词（约 2.3s）。隐藏只改 `visibility` / `opacity`，布局从第一帧起就是终态，所以打字时下方内容不会上下跳；命令行的提示符也一起等轮到自己，否则屏上会先挂着两个后面空着的 `caoqu@local:~$`。按任意键、点终端、切到后台标签页都会立刻补完到终态（后台 `setTimeout` 被限流到 1s，不该剩半屏没打完），另有一个 8s 强制完成定时器。
+- 动画放完后进入**自动演示循环**：自己敲 `whoami` → `ls works/` → `stats` → `skills` → `clear`，无限循环。演示期间光标常亮绿色（`.is-demo`），一眼看得出不是人在打；`aria-live` 同时关掉，否则读屏会被无限念的命令淹掉。真实按键或点击终端即交还控制权（`demoStop()` 清输入框、恢复 `aria-live: polite`）。
+- 挂起条件从「首屏在不在视口」换成了「**输出区是不是滚到底**」：`document.hidden || !atBottom()` 就等着，滚回底部再续上。一屏终端永远在视口里，那个观察器已经没有意义了，但无人值守时不该跟正在读内容的人抢滚动位置——这条约束还在。
+- 循环里**故意不放** `open`：它会换内容，不该在没人点的时候自己跳。
+- 降低动效偏好下开机打字和演示循环整段跳过（JS 直接 `bootFinish()`，不靠 CSS 兜），标题栏时钟退化成只到分钟、60s 一跳。
+
+## 渐进增强与降级
+
+- `<head>` 里一行内联脚本给 `<html>` 加 `.js`；没有 JS 时输入行、建议词、红绿灯按钮整块隐藏（`visibility:hidden`，布局不塌），`<template>` 内容不渲染所以屏上只留静态门牌 + 四个项目名，另有一句 `<noscript>` 实话说明正文写在模板里、开了脚本才会搬进来。
 - 首屏那颗手写 WebGL 的极光球已经拿掉了（连同 `webgl.js`）。终端底色改用两层静态极光 `radial-gradient` 余晖，免得整屏变成一块死黑，同时不引入任何持续运行的动画。
+- 长页时代的卡片 3D 倾斜（`.tilt-on` 指针驱动 `rotateX/rotateY`）、`.reveal` 滚动进场、Ken Burns 呼吸与滚动视差全部随长页一起删除了——它们的前提是「内容在屏幕下方等着被滚到」。
 
-## 作品区
+## 布局坑（改样式前先看这条）
 
-`assets/` 是真实运行截图与录屏，不是设计稿：
+伪元素是**有身份的盒子**，会参与 flex/grid 布局，这是这一轮踩过两次的同一个坑：
 
-- 截图用 Playwright 起本地服务后 `full_page` 抓取，再裁成 16:10（竖屏项目保留 760×1590）转 progressive JPEG。
-- 录屏用 Playwright `record_video_dir` 出 webm，`ffmpeg -c:v libx264 -crf 27 -pix_fmt yuv420p -movflags +faststart -an` 转 mp4，并剪掉开头没有内容的几秒。
-- 画面滚到视口 55% 时由 `IntersectionObserver` 自动播放（触屏没有 hover），离开即暂停；`preload="none"` 保证首屏不下载视频。
-- Ken Burns 呼吸缩放与滚动视差都走独立属性：`transform` 给动画、`translate` 给视差，互不覆盖。降级偏好下两者都关。
+- `.t-ul li::before` 画 `›` 项目符号。若 li 用 `grid-template-columns: 1.1em 1fr`，那么 `::before + b + span` 三个盒子会把 `<span>` 挤进那个 1.1em 的列里，症状是一条要点**一行一个字**。解法是让箭头 `grid-row: 1 / span 2` 独占左列、`b` 和 `span` 都显式 `grid-column: 2`，标题与正文各占一行。
+  （中途试过 `display:flex; flex-wrap:wrap` 让「› 标题 — 正文」连排：正文一折行，那个 `b::after` 的破折号会孤零零吊在行尾，像断词。分成两行既不需要破折号，也和 `.t-tl` 对齐方式一致。）
+- `.t-tl li` 同一套：`span + b + p` 三个盒子两列 grid，让 `.t-year` 用 `grid-row: 1 / span 2` 跨两行，`p` 显式 `grid-column: 2`，否则标题把正文顶到下格。窄屏下两者都退回单列。
 - 绝对定位的 `<img>` / `<video>` 若不给显式宽高会退回固有尺寸，`object-fit` 就失效——框内裁切看起来正常，其实是左上角溢出裁掉的。
-- 页面上每个数字旁边都写了量它的命令（`.work-run`，如 `pytest --collect-only -q` → 223）。数字会过期，命令不会——改数之前先把命令重跑一遍。
 
 ## 本地预览
 
