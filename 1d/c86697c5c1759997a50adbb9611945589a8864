@@ -1,0 +1,21 @@
+index.html
+  s_c0ac75ba782924::t_74d97112deef7b 18,23,41,43-50,52-65,67-79
+style.css
+  s_c0ac75ba782924::t_6072d0490bd878 150-184,244,247-251,255-259,262-265,267,276-280,282-286,290-293,299-301,309,318-319,321,919,921-923,954-959,963
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "1dc86697c5c1759997a50adbb9611945589a8864",
+  "prompts": {},
+  "sessions": {
+    "s_c0ac75ba782924": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0c35d-d5b9-7b03-ae23-222f68fb73b0",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "无敌就是寂寞 <qu.cao@ly.com>"
+    }
+  }
+}
