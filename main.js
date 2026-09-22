@@ -68,20 +68,135 @@
     });
   };
 
-  /* 截图变成可键盘触达的放大入口；clone 出来的新节点在这一步一起处理 */
-  const makeShotsFocusable = (root) => {
-    root.querySelectorAll(".t-shot img").forEach((img) => {
-      img.tabIndex = 0;
-      img.setAttribute("role", "button");
-      img.setAttribute("aria-label", "放大这张截图");
+  /* 框里的媒体：有录屏的就地把截图换成循环播放的静音视频（poster 仍是那张真截图，
+     所以不会有黑框），没有录屏的保持 <img>。两者都要能被键盘点开进放大层。
+     替换只发生在 clone 出来的活 DOM 上——模板源码里永远是 <img>，
+     爬虫、禁用 JS、要求降低动效的人拿到的都是静态截图。 */
+  const shotIO =
+    "IntersectionObserver" in window
+      ? new IntersectionObserver(
+          (entries) =>
+            entries.forEach((en) => {
+              const v = en.target;
+              if (en.isIntersecting) {
+                const pr = v.play();
+                if (pr && pr.catch) pr.catch(() => {});
+              } else v.pause();
+            }),
+          { root: scroller, threshold: 0.2 }
+        )
+      : null;
+
+  const prepShots = (root) => {
+    root.querySelectorAll(".t-shot").forEach((shot) => {
+      const img = shot.querySelector("img");
+      if (!img) return;
+      const src = shot.dataset.video;
+      let media = img;
+      if (src && !prefersReduced) {
+        const v = el("video");
+        v.src = src;
+        v.poster = img.currentSrc || img.src;
+        v.muted = true;
+        v.loop = true;
+        v.playsInline = true;
+        v.autoplay = true;
+        img.replaceWith(v);
+        media = v;
+        if (shotIO) shotIO.observe(v);
+      }
+      media.tabIndex = 0;
+      media.setAttribute("role", "button");
+      media.setAttribute("aria-label", src ? "放大这段录屏" : "放大这张截图");
     });
   };
 
   const render = (id) => {
     const frag = document.getElementById(id).content.cloneNode(true);
     fillNums(frag);
-    makeShotsFocusable(frag);
+    prepShots(frag);
     return frag;
+  };
+
+  /* ---------- 流式输出 ----------
+     命令结果不是一次砸出来的，是像模型回话那样逐字淌出来。
+     还没淌到的块用 visibility 藏（不是 display:none）：布局从第一帧就是终态，
+     打字期间块高不变，placeBlock 和「是不是滚到底」的判据都不会被动画自己推走。
+     任何新命令、按键、点击都立刻补完——没人愿意等上一段打完才能问下一句。 */
+  const STREAM_MAX_MS = 1200;
+  const STREAM_MIN_CPS = 90;
+  let streamJob = null;
+
+  const streamFinish = () => {
+    if (streamJob) streamJob.done();
+  };
+
+  const streamInto = (block) => {
+    if (prefersReduced || !block.firstChild) return;
+    streamFinish();
+
+    const items = [];
+    let total = 0;
+    [...block.children].forEach((child) => {
+      child.classList.add("t-hold");
+      items.push({ show: child });
+      const walk = document.createTreeWalker(child, NodeFilter.SHOW_TEXT);
+      let n;
+      while ((n = walk.nextNode())) {
+        if (!n.nodeValue || !n.nodeValue.trim()) continue;
+        items.push({ node: n, text: n.nodeValue, at: 0 });
+        total += n.nodeValue.length;
+        n.nodeValue = "";
+      }
+    });
+
+    const caret = el("span", "t-stream-caret", "▋");
+    let i = 0;
+    let raf = 0;
+    const t0 = performance.now();
+    let emitted = 0;
+    const cps = Math.max(STREAM_MIN_CPS, total / (STREAM_MAX_MS / 1000));
+
+    const done = () => {
+      cancelAnimationFrame(raf);
+      if (streamJob === job) streamJob = null;
+      for (; i < items.length; i++) {
+        const it = items[i];
+        if (it.show) it.show.classList.remove("t-hold");
+        else it.node.nodeValue = it.text;
+      }
+      caret.remove();
+    };
+    const job = { done };
+    if (!total) return done();
+
+    const step = (now) => {
+      /* 用「到现在为止应该淌出多少字」做绝对基准，而不是每帧算增量：
+         120Hz 下单帧增量不足 1 字，取整会把小数丢掉，动画就永远卡在原地。 */
+      let budget = Math.floor(((now - t0) / 1000) * cps) - emitted;
+      while (i < items.length) {
+        const it = items[i];
+        if (it.show) {
+          it.show.classList.remove("t-hold");
+          i++;
+          continue;
+        }
+        if (budget < 1) break;
+        const take = Math.min(it.text.length - it.at, budget);
+        it.at += take;
+        emitted += take;
+        it.node.nodeValue = it.text.slice(0, it.at);
+        budget -= take;
+        it.node.after(caret);
+        if (it.at >= it.text.length) i++;
+        else break;
+      }
+      if (i >= items.length) return done();
+      raf = requestAnimationFrame(step);
+    };
+
+    streamJob = job;
+    raf = requestAnimationFrame(step);
   };
 
   /* 把「建议下一条命令」写成能点的：报错不该只让人自己去猜 */
@@ -353,11 +468,12 @@
       const block = el("div", "t-block");
       const frag = hit.tpl.content.cloneNode(true);
       fillNums(frag);
-      makeShotsFocusable(frag);
+      prepShots(frag);
       block.append(frag);
       warp(() => {
         termOut.append(block);
         placeBlock(block);
+        streamInto(block);
       });
       return el("p", "t-ok", `→ ${hit.name}　${hit.desc}`);
     },
@@ -368,52 +484,58 @@
   };
 
   /* #term-out 里只有跑出来的东西，欢迎语在 .t-motd：整块清空就是清屏 */
-  const clearScreen = () => termOut.replaceChildren();
+  const clearScreen = () => {
+    streamFinish();
+    termOut.replaceChildren();
+  };
 
+  /* 返回本次输出的块，让调用方去逐字淌出来；clear 没有块可淌 */
   const run = (raw) => {
     const [name, ...rest] = raw.trim().split(/\s+/);
     const arg = rest.join(" ");
-    if (!name) return;
-    if (name === "clear") return clearScreen();
+    if (!name) return null;
+    if (name === "clear") return void clearScreen();
 
     const b = el("div", "t-block");
     termOut.append(b);
 
     if (name === "sudo")
-      return void b.append(
+      b.append(
         el("p", "t-err", "caoqu is not in the sudoers file. This incident will be reported."),
         el("p", "t-dim", "而且就算报了也没用——内部系统的截图和数据都不外传。")
       );
-    if (/^rm/.test(name))
-      return void b.append(
+    else if (/^rm/.test(name))
+      b.append(
         el("p", "t-hl", "rm: 这里没有可删的东西。整站三个文件，删了就没站了。"),
         el("p", "t-dim", "真要清理的是我知识库里那些过期的数字。")
       );
-    if (/^(vim|vi|nano|emacs)$/.test(name))
-      return void b.append(el("p", "t-hl", "这台机器没装编辑器。整站零依赖，所以我也不装。"));
-    if (/^(npm|yarn|pnpm|node)$/.test(name))
-      return void b.append(
+    else if (/^(vim|vi|nano|emacs)$/.test(name))
+      b.append(el("p", "t-hl", "这台机器没装编辑器。整站零依赖，所以我也不装。"));
+    else if (/^(npm|yarn|pnpm|node)$/.test(name))
+      b.append(
         el("p", "t-hl", "npm 在这里没有。三个文件、零个包，构建步骤就是「拷文件」。")
       );
-    if (/^(exit|quit|logout)$/.test(name))
-      return void b.append(el("p", "t-dim", "这不是一个真会话，关掉标签页就行。"));
-
-    if (cmds[name]) {
+    else if (/^(exit|quit|logout)$/.test(name))
+      b.append(el("p", "t-dim", "这不是一个真会话，关掉标签页就行。"));
+    else if (cmds[name]) {
       const ret = cmds[name](b, arg);
       if (ret) b.append(ret);
-      return;
-    }
-    b.append(
-      el("p", "t-err", `zsh: command not found: ${name}`),
-      suggest("试试：", ["help", "works", "open flow-studio"])
-    );
+    } else
+      b.append(
+        el("p", "t-err", `zsh: command not found: ${name}`),
+        suggest("试试：", ["help", "works", "open flow-studio"])
+      );
+    return b;
   };
 
   const runAndShow = (raw) => {
     const line = el("p", "t-line t-echo");
     line.append(el("span", "t-prompt", "caoqu@local:~$"), document.createTextNode(raw));
     termOut.append(line);
-    run(raw);
+    /* 上一段还没淌完就先补全：问下一句不该等上一句 */
+    streamFinish();
+    const b = run(raw);
+    if (b) streamInto(b);
     if (!atBottom()) scrollBottom();
   };
 
@@ -470,21 +592,26 @@
   termInput.addEventListener("input", fitInput);
   fitInput();
 
+  /* 人一碰就把画面定下来：开机动画、自动演示、正在淌的输出全部立刻补完。
+     反过来不行——不能让无人值守的动画跟真人抢同一块屏。 */
+  const takeOver = () => {
+    bootFinish();
+    demoStop();
+    streamFinish();
+  };
+
   /* 首屏项目名、建议词、help 清单、报错里的可选项、ls 的克隆体——
      全走这一条委托，clone 出来的新节点不用重新绑 */
   document.addEventListener("click", (e) => {
     const btn = e.target.closest("[data-cmd]");
     if (!btn) return;
-    bootFinish();
-    demoStop();
+    takeOver();
     runAndShow(btn.dataset.cmd);
   });
 
-  /* 截图放大：同样用委托，块是 clone 出来的 */
-  const shotOf = (node) => {
-    const img = node.closest(".t-shot img");
-    return img ? img.closest(".t-shot") : null;
-  };
+  /* 截图放大：同样用委托，块是 clone 出来的。
+     认 .t-shot 而不是里面的 <img>——有录屏时那张 <img> 已被换成 <video> */
+  const shotOf = (node) => node.closest(".t-shot");
   termOut.addEventListener("click", (e) => {
     const shot = shotOf(e.target);
     if (!shot) return;
@@ -502,8 +629,7 @@
 
   term.querySelectorAll(".t-dot").forEach((dot) => {
     dot.addEventListener("click", () => {
-      bootFinish();
-      demoStop();
+      takeOver();
       const act = dot.dataset.dot;
       if (act === "clear") clearScreen();
       else if (act === "min") term.classList.add("is-min");
@@ -732,8 +858,7 @@
         return;
       }
       if (lb.hidden && !e.metaKey && !e.ctrlKey && !e.altKey && e.key.length === 1) {
-        bootFinish();
-        demoStop();
+        takeOver();
         termInput.focus();
       }
     },
@@ -742,8 +867,7 @@
   term.addEventListener(
     "pointerdown",
     () => {
-      bootFinish();
-      demoStop();
+      takeOver();
     },
     { capture: true }
   );

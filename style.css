@@ -362,7 +362,11 @@ code {
   overflow: hidden;
   background: #0c0c18;
 }
-.t-shot img {
+/* 有录屏时 JS 会把 <img> 就地换成 <video>，尺寸规则两边共用，
+   所以竖屏那套 contain / 居中 / 圆角不用重写一遍 */
+.t-shot img,
+.t-shot video {
+  display: block;
   width: 100%;
   max-height: min(46vh, 420px);
   object-fit: cover;
@@ -373,7 +377,8 @@ code {
 .t-shot.is-phone {
   background: radial-gradient(120% 90% at 50% 0%, #1d1d33 0%, #0c0c18 72%);
 }
-.t-shot.is-phone img {
+.t-shot.is-phone img,
+.t-shot.is-phone video {
   width: auto;
   max-width: min(300px, 68vw);
   max-height: min(58vh, 520px);
@@ -388,6 +393,20 @@ code {
   font-size: 0.78em;
   letter-spacing: 0.02em;
   color: var(--dim);
+}
+
+/* ---------- 流式输出 ----------
+   还没淌到的块用 visibility 藏而不是 display:none：布局从第一帧就是终态，
+   打字期间块高不变，placeBlock 和「是不是滚到底」的判据不会被动画自己推走 */
+.t-hold { visibility: hidden; }
+.t-stream-caret {
+  display: inline-block;
+  width: 0.62em;
+  /* 负边距把自己占的宽度还回去：否则光标会把正在打的那一行提前挤折行，
+     块高就在打字过程中一点点长出来，正好破坏上面那条「布局是终态」 */
+  margin-right: -0.62em;
+  color: var(--green);
+  animation: t-blink 1s steps(1) infinite;
 }
 
 /* ---------- 放大层 ---------- */
@@ -584,7 +603,9 @@ html:not(.js) .t-chips { display: none; }
 
 @media (prefers-reduced-motion: reduce) {
   /* 跃迁整段跳过（JS 里也判），这里兜住粒子层和灭点别被挂上来 */
-  .warp, .warp-core, .t-boot-caret { display: none; }
+  .warp, .warp-core, .t-boot-caret, .t-stream-caret { display: none; }
+  /* JS 在降级偏好下根本不挂 .t-hold，这条只是万一挂了也别把内容藏没 */
+  .t-hold { visibility: visible; }
   .t-echo, .t-block { animation: none; }
   .t-input-row::after { animation: none; }
   .lb, .t-chips button, .t-dot, .warp, .warp-core, .term .t-fade { transition: none; }

@@ -40,11 +40,24 @@
 
 `open flow-studio` 会先把那段跃迁当转场，再把案例块打进输出区：标题、一句话讲清它在干什么、一张**真实运行截图**、三条要点、最底下写清量它的命令。
 
-- 截图是终端内嵌的图框（`.t-shot`），点一下开灯箱；如果这个 `<figure>` 有 `data-video`，灯箱里播的是真录屏（`<video controls autoplay loop>`），没有就放大原图。灯箱关闭会把焦点还给打开它的那张图。
-- 老版那套「滚到视口 55% 自动播放、离开暂停」的 IntersectionObserver 没有了——一屏没有滚动进场这回事，视频只在人点开时才下载并播放，首屏一个字节都不多花。
+- 截图是终端内嵌的图框（`.t-shot`），点一下（或聚焦后回车）开灯箱放大；灯箱关闭会把焦点还给打开它的那张图。
+- **有录屏的作品在框里就直接播**：`prepShots()` 在克隆出来的片段里把 `<img>` 就地换成 `<video muted loop playsinline autoplay>`，`poster` 就是那张原截图，所以视频没到位之前框里不是黑块。静音是因为带声音的自动播放会被浏览器拦，也是「不该在公共场合突然出声」的默认；要声音就点进灯箱，那里是 `<video controls autoplay loop>`。
+- 换的是**运行时的那一份**：`<template>` 里始终是真 `<img>`，所以无 JS、爬虫、以及 `prefers-reduced-motion`（直接保留图片，一行视频字节都不下）拿到的都是静态截图。尺寸规则写成 `.t-shot img, .t-shot video` 共用，竖屏那套 `contain` / 居中 / 圆角不必重写第二遍。
+- 自动播放只挂在**看得见**的那一段：`IntersectionObserver({ root: scroller, threshold: .2 })` 进视野 `play()`、离开 `pause()`。一屏终端里输出区才是滚动容器，观察器的 `root` 必须是它而不是 viewport。
 - 竖屏项目（美图工坊）用 `.t-shot.is-phone`：图窄框宽是故意的，画框当展台，手机当产品照摆在中间，`object-fit:contain` 加圆角和投影。横屏截图仍是 `cover` 裁进 16:10 框里。
 - 素材本身没变：`assets/` 是真实运行截图与录屏。截图用 Playwright 起本地服务后 `full_page` 抓取、裁成 16:10（竖屏保留 760×1590）转 progressive JPEG；录屏用 Playwright `record_video_dir` 出 webm，再 `ffmpeg -c:v libx264 -crf 27 -pix_fmt yuv420p -movflags +faststart -an` 转 mp4 并剪掉开头空几秒。
 - 每个数字旁边都写了量它的命令（`.t-run` / `.t-by`，如 `pytest --collect-only -q` → 223）。数字会过期，命令不会——改数之前先把命令重跑一遍。
+
+## 流式输出
+
+命令结果不是一次砸出来的，是像模型回话那样逐字淌出来（`streamInto()`）。案例块、`help`、`skills` 走的是同一条路径。
+
+- 先把块里每个直接子元素打上 `.t-hold`（`visibility:hidden`，**不是** `display:none`），再用 TreeWalker 收集其中的文本节点、把 `nodeValue` 清空。布局从第一帧起就是终态：打字期间块高一个字节的长度都不变，`placeBlock()` 的落位判据和「有没有滚到底」都不会被动画自己推走——这是开机打字那段用的同一个手法，两处共用。
+- 节奏按**绝对时间**算，不按帧增量：`budget = floor((now - t0) / 1000 * cps) - emitted`。写成「每帧 `dt * cps` 再取整」在 120Hz 屏上会**彻底卡住**——单帧增量 0.94 字，`floor` 把小数丢掉，`budget` 永远凑不到 1，光标停在第 35 个字不动，还不报任何错（本机实测：60fps 下看着像「慢」，120Hz 下就是「死」）。
+- 速率 `cps = max(90, 总字数 / 1.2s)`：短输出也够快，长输出封顶 1.2 秒淌完，不会有人等到第二秒。光标是一个 `▋` 的 `span`，靠 `margin-right:-.62em` 占零宽，跟着最后一个字在 DOM 里搬。
+- **任何交互都立刻补完**（`streamFinish()`）：新命令、任意按键、点击终端、清屏、红黄绿三个灯，全部先把手上这段还原成终态再往下走。人不该为了问下一句等上一句淌完。
+- `prefersReduced` 直接 return，一行代码都不藏；CSS 里同时把 `.t-hold` 强制 `visibility:visible`、光标 `display:none`，双保险。
+- 自动演示的指令间隔（1800ms）必须大于流式上限（1200ms），否则上一句会被下一句抢着补完，看起来跟没有动画一样。
 
 ## 跃迁转场
 
