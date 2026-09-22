@@ -12,47 +12,16 @@
 </head>
 <body>
 
-  <!-- ======= 导航 ======= -->
-  <header class="nav" id="top">
-    <nav class="nav-inner" aria-label="主导航">
-      <span class="nav-dots" aria-hidden="true"><i></i><i></i><i></i></span>
-      <a class="brand" href="#top">
-        <span class="brand-glyph" aria-hidden="true">C</span>
-        <span class="brand-name">Caoqu</span>
-      </a>
-      <em class="nav-tty" aria-hidden="true">caoqu@local — zsh — portfolio</em>
-      <ul class="nav-links" id="nav-links">
-        <li><a href="#about">关于</a></li>
-        <li><a href="#skills">能力</a></li>
-        <li><a href="#journey">轨迹</a></li>
-        <li><a href="#work">作品</a></li>
-        <li><a href="#contact">联系</a></li>
-      </ul>
-      <div class="nav-actions">
-        <a class="btn btn-primary btn-sm" href="#contact">联系我</a>
-        <button class="menu-toggle" id="menu-toggle" aria-expanded="false" aria-controls="nav-links" aria-label="打开菜单">
-          <span></span><span></span>
-        </button>
-      </div>
-    </nav>
-  </header>
-
   <main>
-    <!-- ======= Hero：整屏终端（导航条即标题栏，极光球在终端背后） ======= -->
+    <!-- ======= Hero：整屏终端，标题栏的红绿灯靠左，没有其他装饰层 ======= -->
     <section class="hero" aria-label="首屏">
-      <div class="orb-stage anim anim-3" aria-hidden="true">
-        <div class="orb">
-          <span class="orb-shadow"></span>
-          <canvas class="orb-canvas" id="hero-3d"></canvas>
-          <span class="blob b1"></span>
-          <span class="blob b2"></span>
-          <span class="blob b3"></span>
-          <span class="blob b4"></span>
-        </div>
-      </div>
       <div class="term term-full anim anim-1">
+        <div class="term-bar">
+          <span class="t-dots" aria-hidden="true"><i></i><i></i><i></i></span>
+          <em class="t-tty" aria-hidden="true">caoqu@local — zsh — portfolio</em>
+        </div>
         <div class="term-body">
-          <div id="term-out" aria-live="polite">
+          <div class="t-motd">
             <p class="t-line"><span class="t-prompt">caoqu@local:~$</span> whoami</p>
             <h1 class="t-h1">让 AI 从「能跑」，<br />到「敢上线」。</h1>
             <p class="t-out t-meta">AI 工程 · 质量与效率</p>
@@ -61,9 +30,10 @@
             <p class="t-out t-files">
               <a href="#work-flow">flow-studio/</a><a href="#work-meitu">meitu-web/</a><a href="#work-vibe">vibe-works/</a><a href="#work-kid">kid-earth/</a>
             </p>
-            <p class="t-out t-note"># 背后那颗球是手写的 WebGL 1 光线步进：SDF 元球 + 程序化影棚光照，没有 Three.js，也没有贴图。</p>
+            <p class="t-out t-note"># 点上面任一个项目名，会来一段跃迁动画把你送过去。</p>
             <p class="t-out t-note"># 不想打字就往下滚，下面才是给人看的版本。</p>
           </div>
+          <div id="term-out" aria-live="polite"></div>
           <form class="t-line t-input-row is-empty" id="term-form" autocomplete="off">
             <label class="t-sr" for="term-input">终端命令</label>
             <span class="t-prompt" aria-hidden="true">caoqu@local:~$</span>
@@ -332,11 +302,10 @@
   <footer class="footer">
     <div class="container footer-inner">
       <p>Copyright © <span id="year">2026</span> Caoqu. 保留所有权利。</p>
-      <p class="footer-note">纯静态四件套 · 零依赖 · 零构建</p>
+      <p class="footer-note">纯静态三件套 · 零依赖 · 零构建</p>
     </div>
   </footer>
 
   <script src="main.js"></script>
-  <script src="webgl.js"></script>
 </body>
 </html>

@@ -4,30 +4,6 @@
 
   const prefersReduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-  /* 导航：滚动时显示发丝线 */
-  const nav = document.querySelector(".nav");
-  const onScroll = () => nav.classList.toggle("scrolled", window.scrollY > 8);
-  onScroll();
-  window.addEventListener("scroll", onScroll, { passive: true });
-
-  /* 移动端菜单：overflow 锁定 + 菜单层拦截触摸滚动，避免滚动穿透 */
-  const toggle = document.getElementById("menu-toggle");
-  const navLinks = document.getElementById("nav-links");
-  const setOpen = (open) => {
-    nav.classList.toggle("open", open);
-    toggle.setAttribute("aria-expanded", String(open));
-    toggle.setAttribute("aria-label", open ? "关闭菜单" : "打开菜单");
-    document.body.style.overflow = open ? "hidden" : "";
-  };
-  navLinks.addEventListener("touchmove", (e) => e.preventDefault(), { passive: false });
-  toggle.addEventListener("click", () => setOpen(!nav.classList.contains("open")));
-  document.querySelectorAll(".nav-links a").forEach((a) =>
-    a.addEventListener("click", () => setOpen(false))
-  );
-  document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape" && nav.classList.contains("open")) setOpen(false);
-  });
-
   /* 滚动显现：同一批进入视口的元素依次级联 */
   const revealEls = document.querySelectorAll(".reveal");
   if (prefersReduced || !("IntersectionObserver" in window)) {
@@ -203,10 +179,149 @@
   });
   const workList = () => WORK_LINKS;
 
-  const jump = (node) => {
+  const jumpNow = (node) => {
     if (!node) return;
     node.scrollIntoView({ behavior: prefersReduced ? "auto" : "smooth", block: "start" });
   };
+
+  /* ---------- 跃迁转场 ----------
+     点项目名时铺一层全屏 canvas，画一个真有 z 坐标的粒子场：粒子按透视投影
+     从画面中心往外冲，速度随进度加速，z 越小线越粗越亮，看起来就是被拉长成
+     光条的星。中途页面已经瞬移到目标，淡出时人就站在那儿了。
+     用 2D canvas 手算投影，不为此留一条 WebGL 管线。 */
+  const WARP_COLORS = ["#0a84ff", "#bf5af2", "#ff375f", "#ff9f0a", "#64d2ff", "#30d158"];
+  const WARP_TRAVEL = 640;
+  const WARP_HOLD = 420;
+  let warping = false;
+
+  const spawnStar = (fresh) => ({
+    x: (Math.random() * 2 - 1) * 1.7,
+    y: (Math.random() * 2 - 1) * 1.7,
+    z: fresh ? 0.3 + Math.random() * 1.5 : 1.55 + Math.random() * 0.5,
+    c: WARP_COLORS[(Math.random() * WARP_COLORS.length) | 0],
+  });
+
+  const warpTo = (node) => {
+    if (warping) return;
+    warping = true;
+
+    const cv = document.createElement("canvas");
+    cv.className = "warp";
+    cv.setAttribute("aria-hidden", "true");
+    /* 灭点做成 DOM 层：canvas 每帧只盖 30% 底色来叠拖尾，
+       中心光晕画在里面的话会被几十帧累加成一团雾，画在层外才是稳定的亮 */
+    const core = document.createElement("div");
+    core.className = "warp-core";
+    core.setAttribute("aria-hidden", "true");
+    document.body.append(core, cv);
+    const ctx = cv.getContext && cv.getContext("2d");
+    const end = () => {
+      cv.classList.remove("is-on");
+      core.classList.remove("is-on");
+      setTimeout(() => {
+        cv.remove();
+        core.remove();
+      }, 320);
+      warping = false;
+    };
+    if (!ctx) {
+      jumpNow(node);
+      end();
+      return;
+    }
+
+    const W = window.innerWidth;
+    const H = window.innerHeight;
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    cv.width = Math.round(W * dpr);
+    cv.height = Math.round(H * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const cx = W / 2;
+    const cy = H / 2;
+    const fl = Math.min(W, H) * 0.62;
+    const stars = Array.from({ length: Math.round(Math.min(1300, Math.max(520, (W * H) / 1250))) }, () =>
+      spawnStar(true)
+    );
+    const px = (s) => cx + (s.x / s.z) * fl;
+    const py = (s) => cy + (s.y / s.z) * fl;
+
+    requestAnimationFrame(() => {
+      cv.classList.add("is-on");
+      core.classList.add("is-on");
+    });
+    ctx.fillStyle = "#090912";
+    ctx.fillRect(0, 0, W, H);
+
+    const t0 = performance.now();
+    let jumped = false;
+    requestAnimationFrame(function frame(now) {
+      const p = Math.min((now - t0) / (WARP_TRAVEL + WARP_HOLD), 1);
+      const v = 1.5 + 4.6 * p * p;
+      /* 每帧只盖一层半透明底色：拖尾自然叠出来，比逐条画尾迹省 */
+      ctx.globalCompositeOperation = "source-over";
+      ctx.fillStyle = "rgba(9, 9, 18, 0.3)";
+      ctx.fillRect(0, 0, W, H);
+      ctx.globalCompositeOperation = "lighter";
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.rotate(p * 0.34);
+      ctx.translate(-cx, -cy);
+      ctx.lineCap = "round";
+      for (const s of stars) {
+        const x0 = px(s);
+        const y0 = py(s);
+        s.z -= v * 0.017;
+        if (s.z < 0.14) Object.assign(s, spawnStar(false));
+        const x1 = px(s);
+        const y1 = py(s);
+        /* 越近（z 越小）越粗越亮；宽而淡的一层当辉光，窄而亮的一层当核心 */
+        const near = 1 / s.z;
+        ctx.strokeStyle = s.c;
+        ctx.globalAlpha = Math.min(0.5, near * 0.22);
+        ctx.lineWidth = Math.min(7, near * 1.5);
+        ctx.beginPath();
+        ctx.moveTo(x0, y0);
+        ctx.lineTo(x1, y1);
+        ctx.stroke();
+        ctx.globalAlpha = Math.min(1, near * 0.42);
+        ctx.lineWidth = Math.min(2.4, near * 0.42);
+        ctx.beginPath();
+        ctx.moveTo(x0, y0);
+        ctx.lineTo(x1, y1);
+        ctx.stroke();
+      }
+      ctx.restore();
+      ctx.globalAlpha = 1;
+
+      if (!jumped && now - t0 >= WARP_TRAVEL) {
+        jumped = true;
+        node.scrollIntoView({ behavior: "auto", block: "start" });
+      }
+      if (p < 1) requestAnimationFrame(frame);
+      else end();
+    });
+  };
+
+  /* 只有作品行配得上这段跃迁：跳到轨迹 / 联系用普通滚动 */
+  const isWorkRow = (node) =>
+    !!node && (node.classList.contains("work-row") || node.id === "work");
+
+  const jump = (node) => {
+    if (!node) return;
+    if (!isWorkRow(node) || prefersReduced) return jumpNow(node);
+    warpTo(node);
+  };
+
+  /* 首屏那行 ls works/ 的链接、命令输出里 cloneNode 出来的副本，都走同一条委托，
+     新节点不用重新绑事件 */
+  document.addEventListener("click", (e) => {
+    const a = e.target.closest("a[href^='#']");
+    if (!a) return;
+    const hit = document.querySelector(a.getAttribute("href"));
+    if (!isWorkRow(hit)) return;
+    e.preventDefault();
+    jump(hit);
+  });
 
   const cmds = {
     help: (b) => {
@@ -267,10 +382,15 @@
     stats: (b) => {
       const grid = el("div", "t-cols");
       [...document.querySelectorAll(".stat")].forEach((s) => {
-        grid.append(
-          el("dt", "t-hl", txt(s, ".stat-num").trim()),
-          el("dd", null, txt(s, ".stat-label").trim())
-        );
+        const n = s.querySelector(".stat-num");
+        /* 数字要滚到那一屏才开始滚：终端读 data-target，别把动画中间帧的 0 报出去 */
+        const val =
+          n && n.dataset.target !== undefined
+            ? parseFloat(n.dataset.target).toFixed(
+                parseInt(n.dataset.decimals || "0", 10)
+              ) + (n.dataset.suffix || "")
+            : txt(s, ".stat-num").trim();
+        grid.append(el("dt", "t-hl", val), el("dd", null, txt(s, ".stat-label").trim()));
       });
       b.append(grid, el("p", "t-dim", "每个数字旁边都写了量它的命令，可以自己复算"));
     },
@@ -300,11 +420,8 @@
     return p;
   }
 
-  /* 只清掉命令打出来的东西，首屏那段欢迎语是 HTML 里的原文。
-     表单是 #term-out 的兄弟节点：新输出往上长，光标行自然被顶下去 */
-  const clearScreen = () => {
-    termOut.querySelectorAll(".t-echo, .t-block").forEach((c) => c.remove());
-  };
+  /* #term-out 里只有跑出来的东西，欢迎语在 .t-motd：整块清空就是清屏 */
+  const clearScreen = () => termOut.replaceChildren();
 
   const run = (raw) => {
     const [name, ...rest] = raw.trim().split(/\s+/);
@@ -323,7 +440,7 @@
       return void b.append(el("p", "t-hl", "这台机器没装编辑器。整站零依赖，所以我也不装。"));
     if (/^(npm|yarn|pnpm|node)$/.test(name))
       return void b.append(
-        el("p", "t-hl", "npm 在这里没有。四个文件、零个包，构建步骤就是「拷文件」。")
+        el("p", "t-hl", "npm 在这里没有。三个文件、零个包，构建步骤就是「拷文件」。")
       );
     if (/^(exit|quit|logout)$/.test(name))
       return void b.append(el("p", "t-dim", "这不是一个真会话，关掉标签页就行。"));
@@ -343,7 +460,7 @@
     line.append(el("span", "t-prompt", "caoqu@local:~$"), document.createTextNode(raw));
     termOut.append(line);
     run(raw);
-    termBody.scrollTop = termBody.scrollHeight;
+    termOut.scrollTop = termOut.scrollHeight;
   };
 
   const history = [];
@@ -352,6 +469,7 @@
   termForm.addEventListener("submit", (e) => {
     e.preventDefault();
     const raw = termInput.value;
+    demoStop();
     if (!raw.trim()) return runAndShow("");
     history.push(raw);
     cursor = history.length;
@@ -411,10 +529,11 @@
       termInput.focus();
     });
 
-  /* ---------- 开机动画 ----------
-     首屏那几行不是贴上去的字，是当场敲出来的：命令逐字打、输出整行打印，
-     最后才亮出输入行，顺便告诉来访者「这个框能输入」。隐藏状态由 JS 挂类才开始，
-     脚本没跑或直接报错都只会退化成完整静态内容。 */
+  /* ---------- 门牌打字机 + 自动演示 ----------
+     首屏那段门牌不是贴上去的字，是当场敲出来的；打完之后终端自己敲一串命令循环演示，
+     来访者一碰键盘、一点屏幕就把控制权交回去，从此不再自动打。
+     隐藏状态由 JS 挂类才开始，脚本没跑或直接报错都只会退化成完整静态内容。 */
+  const motd = document.querySelector(".t-motd");
   const termChips = document.getElementById("term-chips");
   let bootTimers = [];
   let booted = false;
@@ -426,10 +545,10 @@
     bootTimers.forEach(clearTimeout);
     bootTimers = [];
     term.querySelectorAll(".t-wait").forEach((n) => n.classList.remove("t-wait"));
-    termOut.querySelectorAll(".t-ch").forEach((n) => n.classList.add("on"));
-    const caret = termOut.querySelector(".t-boot-caret");
+    motd.querySelectorAll(".t-ch").forEach((n) => n.classList.add("on"));
+    const caret = motd.querySelector(".t-boot-caret");
     if (caret) caret.remove();
-    termOut.setAttribute("aria-live", "polite");
+    startDemo();
   };
 
   const startBoot = () => {
@@ -442,7 +561,7 @@
     };
     const acts = [];
 
-    [...termOut.children].forEach((node) => {
+    [...motd.children].forEach((node) => {
       if (node.classList.contains("t-line")) {
         const tn = node.lastChild;
         const raw = tn && tn.nodeType === 3 ? tn.textContent : "";
@@ -499,8 +618,6 @@
     acts.push({ ms: 200, fn: () => termForm.classList.remove("t-wait") });
     acts.push({ ms: 240, fn: () => termChips.classList.remove("t-wait") });
 
-    /* 逐字点亮期间别让 aria-live 把半截命令念一遍 */
-    termOut.setAttribute("aria-live", "off");
     let i = 0;
     const tick = () => {
       if (booted) return;
@@ -516,35 +633,117 @@
     setTimeout(bootFinish, 8000);
   };
 
-  if (!prefersReduced) {
-    const skip = () => bootFinish();
+  /* ---------- 自动演示 ----------
+     一串真命令轮流敲：命令字符逐个进输入行（绿光标表示不是人在打），
+     回车后走的是和用户手敲完全同一条 run() 路径，所以输出永远是页面真数据。
+     敲完一轮 clear 再从头来；标签页切走或首屏滚出视野就原地 parked，回来续上。 */
+  const DEMO_CMDS = ["whoami", "ls works/", "stats", "skills", "clear"];
+  let demoTimer = 0;
+  let demoIdx = 0;
+  let demoOn = !prefersReduced;
+  let demoInView = true;
+  let waitResume = null;
+
+  const later = (fn, ms) => {
+    clearTimeout(demoTimer);
+    demoTimer = setTimeout(() => {
+      if (!demoOn) return;
+      if (!demoInView || document.hidden) {
+        termForm.classList.remove("is-demo");
+        waitResume = fn;
+        return;
+      }
+      fn();
+    }, ms);
+  };
+
+  const resumeDemo = () => {
+    if (!demoOn || waitResume === null || !demoInView || document.hidden) return;
+    const fn = waitResume;
+    waitResume = null;
+    fn();
+  };
+
+  const demoStop = () => {
+    if (!demoOn) return;
+    demoOn = false;
+    clearTimeout(demoTimer);
+    waitResume = null;
+    termForm.classList.remove("is-demo");
+    if (termInput.value) {
+      termInput.value = "";
+      fitInput();
+    }
+    termOut.setAttribute("aria-live", "polite");
+  };
+
+  const demoStep = () => {
+    waitResume = null;
+    const cmd = DEMO_CMDS[demoIdx++ % DEMO_CMDS.length];
+    let i = 0;
+    termForm.classList.add("is-demo");
+    const type = () => {
+      termInput.value = cmd.slice(0, ++i);
+      fitInput();
+      if (i < cmd.length) return later(type, 44 + Math.random() * 34);
+      later(() => {
+        termForm.classList.remove("is-demo");
+        termInput.value = "";
+        fitInput();
+        runAndShow(cmd);
+        later(demoStep, cmd === "clear" ? 780 : 1600);
+      }, 300);
+    };
+    type();
+  };
+
+  function startDemo() {
+    if (!demoOn) return;
+    /* 自动循环期间关掉 aria-live，否则读屏会被无限念的命令淹掉 */
+    termOut.setAttribute("aria-live", "off");
+    later(demoStep, 1000);
+  }
+
+  if (demoOn) {
     document.addEventListener(
       "keydown",
       (e) => {
-        if (booted) return;
         bootFinish();
+        demoStop();
         if (e.key.length === 1 && !e.metaKey && !e.ctrlKey && !e.altKey) termInput.focus();
       },
       { capture: true }
     );
-    term.addEventListener("pointerdown", skip, { capture: true });
-    /* 后台标签页的 setTimeout 会被限流到 1s，回来时不该还剩半屏没打完 */
+    term.addEventListener(
+      "pointerdown",
+      () => {
+        bootFinish();
+        demoStop();
+      },
+      { capture: true }
+    );
+    /* 后台标签页的 setTimeout 会被限流到 1s：切回来时不该还剩半行没敲 */
     document.addEventListener("visibilitychange", () => {
       if (document.hidden) bootFinish();
+      else resumeDemo();
     });
-    if ("IntersectionObserver" in window) {
-      const bootIo = new IntersectionObserver(
-        (entries) => {
-          if (!entries.some((en) => en.isIntersecting)) return;
-          bootIo.disconnect();
-          startBoot();
-        },
-        { threshold: 0.3 }
-      );
-      bootIo.observe(term);
-    } else {
-      startBoot();
-    }
+  }
+
+  if ("IntersectionObserver" in window) {
+    const bootIo = new IntersectionObserver(
+      (entries) => {
+        const seen = entries.some((en) => en.isIntersecting);
+        demoInView = seen;
+        if (seen) {
+          if (!bootStarted) startBoot();
+          resumeDemo();
+        }
+      },
+      { threshold: [0, 0.3] }
+    );
+    bootIo.observe(term);
+  } else {
+    startBoot();
   }
 
   /* 页脚年份 */

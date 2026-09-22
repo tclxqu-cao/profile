@@ -1,28 +1,37 @@
 # Caoqu — 个人主页
 
-仿 Apple 设计风格的个人网站：整屏终端首屏、毛玻璃导航、苹果系统配色与字体栈。
-纯静态四件套（`index.html` + `style.css` + `main.js` + `webgl.js`），零依赖、无构建、无后端。
+仿 Apple 设计风格的个人网站：整屏终端首屏、苹果系统配色与字体栈、跃迁式跳转。
+纯静态三件套（`index.html` + `style.css` + `main.js`），零依赖、无构建、无后端。
 
 ## 终端首屏
 
-首屏就是一台占满一屏的终端（`.hero` 固定 `height:100svh`，`.term-full` 铺满它），Hero 不再是一张卡片：
+首屏就是**一整台终端**，没有导航条（`.hero` 固定 `height:100svh`，`.term-full` 铺满它）：
 
-- 未滚动时导航条就是这台终端的标题栏：红绿灯三个点 + `caoqu@local — zsh — portfolio`。切换靠的是既有的 `.nav.scrolled` 类（`scrollY > 8` 时加上），`.nav:not(.scrolled)` 一套规则改成深色等宽，不需要额外 JS；往下滚就还原成普通毛玻璃导航。
-- WebGL 球退到 `.term-full` 背后当背景（`.orb-stage` 绝对定位 `z-index:0`、`.term-full` 半透明 `rgba(9,9,18,.74)` 盖在上面），球上再压一层深色所以文字仍然读得清。原来 Hero 右侧那块独立的球和 `.orb-note` 都删了，`<head>` 里的 `aria-label` 与结构相应重排。
+- 标题栏是终端自己的 `.term-bar`：红绿灯三个点靠左排，右边 `caoqu@local — zsh — portfolio`。全站没有 `<nav>`，去别的区块靠往下滚、或终端里输命令。
 - `.term-body` 自己 `overflow-y:auto`，但**故意不加** `overscroll-behavior: contain`：终端滚到底就该把滚动交给页面，一个占满首屏的嵌套滚动区最怕的就是滚不出去。同理这里不用 `min-height`——内容一多首屏就会被撑成两屏，变成一个往下滚不动的坑。
+- 屏内分两块：`.t-motd` 是开场一次性敲出来的门牌（`flex:none`，永远不会被顶出屏幕），`#term-out` 是自动演示与用户输出的滚动区。
 - 命令的输出**全部现从页面 DOM 里读**——`works` 读首屏那行 `ls works/` 的链接、`skills` 读 `#skills .card h3`、`stats` 读 `.stat`、`timeline` 读 `.t-row`。改了文案或数字，终端不会反过来讲一套假话。
+  例外是 `stats`：它读 `.stat-num[data-target]` 而不是文本，因为页面上那些数字要滚到那一屏才开始往上滚，读文本会在首屏报出一串 `0`。
 - 支持 `help / whoami / ls / works / open <名字> / skills / timeline / stats / contact / date / clear`，↑↓ 翻历史、Tab 补全、Ctrl-L 清屏；`open` 的别名同时接受 `flow-studio`、`flow`、`Flow Studio`。
 - 用户输入一律走 `textContent` 建节点，不拼 HTML 字符串。
 - `<head>` 里一行内联脚本给 `<html>` 加 `.js`；没有 JS 时输入行和建议词整块隐藏，只留静态欢迎语。
 - `<input>` 没有自适应宽度：用一个 `visibility:hidden` 的 span 量当前文本再写回 `width`，空着时量 placeholder，否则提示语会被切掉半个汉字。
-- 开机动画：终端进视口后把欢迎语逐字敲出来，绿色方块光标跟着字符前进，输出整行依次打印，最后才亮出输入行和建议词（约 2.3s）。隐藏只改 `visibility` / `opacity`，布局从第一帧起就是终态，所以打字时下方内容不会上下跳；命令行的提示符也一起等轮到自己，否则屏上会先挂着两个后面空着的 `caoqu@local:~$`。按任意键、点终端、切到后台标签页都会立刻补完到终态（后台 `setTimeout` 被限流到 1s，不该剩半屏没打完）；`prefers-reduced-motion` 整段跳过，JS 没跑则由 `.t-wait` 根本不挂载来兜底，另有一个 8s 强制完成定时器。打字期间把 `aria-live` 关掉，免得读屏念出半截命令。
+- 开机动画：终端进视口后把欢迎语逐字敲出来，绿色方块光标跟着字符前进，输出整行依次打印，最后才亮出输入行和建议词（约 2.3s）。隐藏只改 `visibility` / `opacity`，布局从第一帧起就是终态，所以打字时下方内容不会上下跳；命令行的提示符也一起等轮到自己，否则屏上会先挂着两个后面空着的 `caoqu@local:~$`。按任意键、点终端、切到后台标签页都会立刻补完到终态（后台 `setTimeout` 被限流到 1s，不该剩半屏没打完）；`prefers-reduced-motion` 整段跳过，JS 没跑则由 `.t-wait` 根本不挂载来兜底，另有一个 8s 强制完成定时器。
+- 开机动画放完后进入**自动演示循环**：自己敲 `whoami` → `ls works/` → `stats` → `skills` → `clear`，无限循环。演示期间光标常亮绿色（`.is-demo`），一眼看得出不是人在打；`aria-live` 同时关掉，否则读屏会被无限念的命令淹掉。真实按键或点击终端即交还控制权（`demoStop()` 清掉输入框、恢复 `aria-live: polite`）。滚出视口或标签页切后台时挂起，回来接着上一步，不会留半截命令在屏上。循环里**故意不放** `open` / `works` 这类会跳路的命令——无人值守时不该动页面滚动位置。
+
+## 跃迁转场
+
+点首屏 `ls works/` 里的项目名（以及终端输出里 clone 出来的同名链接），会先播一段 3D 超空间跃迁再落到那一行作品：
+
+- `warpTo()` 造一层全屏 `canvas.warp`，粒子是 `{x, y, z, color}` 三维坐标，用 `sx = cx + x/z * fl` 透视投影，所以是真实的纵深而不是画斜线。越近的粒子越粗越亮，分两层描边（宽而淡的当辉光、窄而亮的当核心），叠加 `globalCompositeOperation = "lighter"`。
+- 拖尾靠每帧盖一层 `rgba(9,9,18,.3)` 半透明底色自然叠出来，比逐条记录尾迹省得多。相机随进度 `rotate` 轻微翻滚，落点用 `scrollIntoView` 在跃迁尾段一次性对齐。
+- **灭点画在 DOM 层**（`.warp-core`）而不是 canvas 里：canvas 每帧只叠 30% 底色，画在里面的光晕会被几十帧累加成一团糊住半屏的灰雾。这层压在 canvas 之上（canvas 底是不透明的，压在它后面等于没有）、用 `mix-blend-mode: screen` 加光，尺寸写死在 `vmin` 里所以始终是一个「点」。
+- 只有作品行配得上这段跃迁：跳到轨迹 / 联系走普通 `scrollIntoView`。`prefers-reduced-motion` 下整段跳过，CSS 里 `.warp, .warp-core { display:none }` 兜住。
 
 ## 3D 部分
 
-- `webgl.js`：首屏终端背景那颗液态金属球，手写 WebGL 1 光线步进（SDF + smooth-union 元球），无任何库与环境贴图，色相由菲涅尔驱动极光调色板。
-  渐进增强：拿不到 WebGL 上下文或编译失败时静默退出，保留原来的 CSS 模糊光斑。
-  自适应：分辨率缩放 + 掉帧降采样，离屏/后台暂停，`prefers-reduced-motion` 只渲染一帧静态图。
 - 卡片 3D 倾斜：`main.js` 检测 `(hover: hover) and (pointer: fine)` 后给 `<html>` 加 `.tilt-on`，指针驱动 `perspective + rotateX/rotateY` 与跟随高光；触屏与降级偏好下不启用。
+- 首屏那颗手写 WebGL 的极光球已经拿掉了（连同 `webgl.js`）。终端底色改用两层静态极光 `radial-gradient` 余晖，免得整屏变成一块死黑，同时不引入任何持续运行的动画。
 
 ## 作品区
 
