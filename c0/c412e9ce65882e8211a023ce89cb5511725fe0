@@ -1,0 +1,23 @@
+README.md
+  s_0d2645ce1b1bef::t_75d6aaaf23be1d 15
+main.js
+  s_0d2645ce1b1bef::t_18447958a679bd 414-549
+style.css
+  s_0d2645ce1b1bef::t_05a570025952e6 383-408,964-966
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "c0c412e9ce65882e8211a023ce89cb5511725fe0",
+  "prompts": {},
+  "sessions": {
+    "s_0d2645ce1b1bef": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0c445-5c36-7030-b47e-3caa1a40aa37",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "无敌就是寂寞 <qu.cao@ly.com>"
+    }
+  }
+}
