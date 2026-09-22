@@ -411,6 +411,142 @@
       termInput.focus();
     });
 
+  /* ---------- 开机动画 ----------
+     首屏那几行不是贴上去的字，是当场敲出来的：命令逐字打、输出整行打印，
+     最后才亮出输入行，顺便告诉来访者「这个框能输入」。隐藏状态由 JS 挂类才开始，
+     脚本没跑或直接报错都只会退化成完整静态内容。 */
+  const termChips = document.getElementById("term-chips");
+  let bootTimers = [];
+  let booted = false;
+  let bootStarted = false;
+
+  const bootFinish = () => {
+    if (booted) return;
+    booted = true;
+    bootTimers.forEach(clearTimeout);
+    bootTimers = [];
+    term.querySelectorAll(".t-wait").forEach((n) => n.classList.remove("t-wait"));
+    termOut.querySelectorAll(".t-ch").forEach((n) => n.classList.add("on"));
+    const caret = termOut.querySelector(".t-boot-caret");
+    if (caret) caret.remove();
+    termOut.setAttribute("aria-live", "polite");
+  };
+
+  const startBoot = () => {
+    if (bootStarted || booted) return;
+    bootStarted = true;
+
+    const wait = (n) => {
+      n.classList.add("t-fade", "t-wait");
+      return n;
+    };
+    const acts = [];
+
+    [...termOut.children].forEach((node) => {
+      if (node.classList.contains("t-line")) {
+        const tn = node.lastChild;
+        const raw = tn && tn.nodeType === 3 ? tn.textContent : "";
+        const chars = [];
+        if (raw.trim()) {
+          const frag = document.createDocumentFragment();
+          tn.textContent = raw.slice(0, raw.length - raw.trimStart().length);
+          for (const ch of raw.trimStart()) {
+            if (ch === " ") {
+              frag.append(" ");
+              continue;
+            }
+            const sp = el("span", "t-ch");
+            sp.textContent = ch;
+            frag.append(sp);
+            chars.push(sp);
+          }
+          node.append(frag);
+        }
+        const caret = el("span", "t-boot-caret");
+        /* 整行连提示符一起等到轮到自己：否则开机时屏上会先挂着两个后面空着的提示符 */
+        wait(node);
+        acts.push({
+          ms: 120,
+          fn: () => {
+            node.classList.remove("t-wait");
+            if (chars.length) chars[0].before(caret);
+            else node.append(caret);
+          },
+        });
+        chars.forEach((c) =>
+          acts.push({
+            ms: 26,
+            fn: () => {
+              c.classList.add("on");
+              c.after(caret);
+            },
+          })
+        );
+        acts.push({ ms: 190, fn: () => caret.remove() });
+      } else if (node.classList.contains("t-files")) {
+        [...node.querySelectorAll("a")].forEach((a) => {
+          wait(a);
+          acts.push({ ms: 65, fn: () => a.classList.remove("t-wait") });
+        });
+      } else {
+        wait(node);
+        acts.push({ ms: 130, fn: () => node.classList.remove("t-wait") });
+      }
+    });
+
+    wait(termForm);
+    wait(termChips);
+    acts.push({ ms: 200, fn: () => termForm.classList.remove("t-wait") });
+    acts.push({ ms: 240, fn: () => termChips.classList.remove("t-wait") });
+
+    /* 逐字点亮期间别让 aria-live 把半截命令念一遍 */
+    termOut.setAttribute("aria-live", "off");
+    let i = 0;
+    const tick = () => {
+      if (booted) return;
+      if (i >= acts.length) {
+        bootFinish();
+        return;
+      }
+      const a = acts[i++];
+      a.fn();
+      bootTimers.push(setTimeout(tick, a.ms));
+    };
+    bootTimers.push(setTimeout(tick, 420));
+    setTimeout(bootFinish, 8000);
+  };
+
+  if (!prefersReduced) {
+    const skip = () => bootFinish();
+    document.addEventListener(
+      "keydown",
+      (e) => {
+        if (booted) return;
+        bootFinish();
+        if (e.key.length === 1 && !e.metaKey && !e.ctrlKey && !e.altKey) termInput.focus();
+      },
+      { capture: true }
+    );
+    term.addEventListener("pointerdown", skip, { capture: true });
+    /* 后台标签页的 setTimeout 会被限流到 1s，回来时不该还剩半屏没打完 */
+    document.addEventListener("visibilitychange", () => {
+      if (document.hidden) bootFinish();
+    });
+    if ("IntersectionObserver" in window) {
+      const bootIo = new IntersectionObserver(
+        (entries) => {
+          if (!entries.some((en) => en.isIntersecting)) return;
+          bootIo.disconnect();
+          startBoot();
+        },
+        { threshold: 0.3 }
+      );
+      bootIo.observe(term);
+    } else {
+      startBoot();
+    }
+  }
+
   /* 页脚年份 */
   document.getElementById("year").textContent = new Date().getFullYear();
 })();

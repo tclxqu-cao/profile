@@ -380,6 +380,32 @@ html:not(.js) .t-chips { display: none; }
   .t-jump:hover { text-decoration: underline; }
 }
 
+/* ---------- 开机动画 ----------
+   只动 visibility / opacity：布局从第一帧起就是终态，逐字敲命令时下方内容不会跟着上下跳。
+   JS 建立这些类之后才会隐藏，脚本没跑＝直接看到完整内容。 */
+.term .t-wait {
+  opacity: 0;
+  transform: translateY(5px);
+  pointer-events: none;
+}
+.term .t-fade { transition: opacity 0.26s ease, transform 0.26s ease; }
+.t-ch { visibility: hidden; }
+.t-ch.on { visibility: visible; }
+.t-boot-caret {
+  display: inline-block;
+  width: 8px;
+  height: 1.02em;
+  margin-left: 1px;
+  vertical-align: text-bottom;
+  background: #30d158;
+}
+/* 用户敲下去的命令与输出整块打印出来；echo 只淡入，不做打字机——回显必须比手感慢不得 */
+@keyframes t-print {
+  from { opacity: 0; transform: translateY(4px); }
+}
+.t-echo { animation: t-print 0.14s ease both; }
+.t-block { animation: t-print 0.2s ease both; }
+
 /* 极光球 —— 本页的签名元素 */
 .orb {
   position: relative;
@@ -935,4 +961,7 @@ html:not(.js) .t-chips { display: none; }
   /* 光标不闪，只留一个静态方块 */
   .t-input-row::after { animation: none; }
   .t-chips button { transition: none; }
+  /* 开机动画在 JS 里整段跳过，这里兜住命令回显与结果块的打印 */
+  .t-echo, .t-block { animation: none; }
+  .t-boot-caret { display: none; }
 }
