@@ -1,0 +1,74 @@
+tests/ui-contract.test.js
+  s_0fe2d788591c4c::t_1affc4eae4953a 118-120
+  s_0fe2d788591c4c::t_45c0f77107752a 5,8-14,30,32,46-52,55-57,59-61,63,69,79-93,98,104-107,112-113,171-177,179-180
+  s_bd20ce99e6a8be::t_ad2157ebb849ec 72-78,101
+  s_3f2565b4f84945::t_7a6c30e3fbb494 1-4,6-7,15-16,44-45,70-71,169-170,178,181
+  s_0b7ae78449458f::t_39f30223f312b7 17-28,108-110
+  s_0fe2d788591c4c::t_f3cf1bcc01b107 155
+  s_bd20ce99e6a8be::t_e0a38ca6c7b4e9 53-54,62
+  s_3f2565b4f84945::t_daf803384e2145 58,64,102-103,126-128
+  s_0b7ae78449458f::t_3f0cfea4c2e55e 168
+  s_0b7ae78449458f::t_c76c7c3c5978b8 99,132-134,139-143,166
+  s_0fe2d788591c4c::t_bcd76308c13b5b 158-160
+  s_0fe2d788591c4c::t_6f122b7c74efad 94-97,121-124,144-154,156-157
+  s_3f2565b4f84945::t_19ccf2a80538b6 29,35-41,65-68,129-130
+  s_0b7ae78449458f::t_656b90a2d76a07 31,33-34,43
+  s_0b7ae78449458f::t_43c25b4e39a195 111
+  s_0fe2d788591c4c::t_4ac9c7177b2d8d 125
+  s_3f2565b4f84945::t_88801e8b2ed43f 114-117
+  s_0b7ae78449458f::t_f1bd2538b24291 100,135-138,161-165,167
+  s_0b7ae78449458f::t_4b2b1b6307509d 42,131
+docs/superpowers/plans/2026-09-23-homepage-bear-thinking-loading.md
+  s_0b7ae78449458f::t_f1bd2538b24291 5,7,14,17-18,38,50,55-73
+  s_0b7ae78449458f::t_83c8635bf3d759 19-20,29,54,75-102,111
+  s_0b7ae78449458f::t_24f1c646c23651 1-4,6,8-13,15-16,21-28,30-37,39-49,51-53,74,103-110
+docs/superpowers/plans/2026-09-23-terminal-theme-and-input-demo.md
+  s_0fe2d788591c4c::t_7bd90a32f7daa0 33,52,64,78,89,100,104,108,123,137,141,147
+  s_0fe2d788591c4c::t_47fb0f941bf419 1-32,34-51,53-63,65-77,79-88,90-99,101-103,105-107,109-122,124-136,138-140,142-146,148-153
+docs/superpowers/plans/2026-09-24-natural-language-artifact-contract.md
+  s_3f2565b4f84945::t_00e66f462aa38c 31,35,39,43,58,62,68
+  s_3f2565b4f84945::t_0e1900dffa7746 1-30,32-34,36-38,40-42,44-57,59-61,63-67,69-73
+tests/command.test.js
+  s_0fe2d788591c4c::t_45c0f77107752a 1-46,48-52,56-59,66-84,88-121
+  s_0b7ae78449458f::t_39f30223f312b7 47,53-55,60-65,85-87
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "70d7628eb26c1d81fc2f533af10962dbdac11d38",
+  "prompts": {},
+  "sessions": {
+    "s_0b7ae78449458f": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0c83e-853b-7bb0-9e86-8c1ea79b5d36",
+        "model": "gpt-5.6-sol"
+      },
+      "human_author": "无敌就是寂寞 <qu.cao@ly.com>"
+    },
+    "s_0fe2d788591c4c": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0c94a-bb9b-7fe2-92ea-d371352bd1b4",
+        "model": "gpt-5.6-sol"
+      },
+      "human_author": "无敌就是寂寞 <qu.cao@ly.com>"
+    },
+    "s_3f2565b4f84945": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0c871-5134-7792-931a-669b4a91cd7c",
+        "model": "gpt-5.6-sol"
+      },
+      "human_author": "无敌就是寂寞 <qu.cao@ly.com>"
+    },
+    "s_bd20ce99e6a8be": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0ce6b-091e-7092-a41f-005b854af272",
+        "model": "gpt-5.6-sol"
+      },
+      "human_author": "无敌就是寂寞 <qu.cao@ly.com>"
+    }
+  }
+}
