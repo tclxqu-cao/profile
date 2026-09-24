@@ -1,0 +1,93 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="2000" height="1360" viewBox="0 0 2000 1360" role="img" aria-labelledby="title desc">
+  <title id="title">AgentRoam 多端 Agent 工作流</title><desc id="desc">统一会话与运行时适配，让桌面、浏览器和手机接续同一项任务</desc>
+  <defs>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="130%"><feDropShadow dx="0" dy="4" stdDeviation="5" flood-color="#101828" flood-opacity=".08" /></filter>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#2F3C52" /></marker>
+    <marker id="arrow-violet" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#6938EF" /></marker>
+    <marker id="arrow-green" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#079455" /></marker>
+    <marker id="arrow-red" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#E11D48" /></marker>
+  </defs>
+  <style>
+    text{font-family:Inter,"PingFang SC","Microsoft YaHei",Arial,sans-serif;letter-spacing:0;fill:#182230}
+    .surface{fill:#fff;stroke:#B2CCFF;stroke-width:2}.title{font-size:31px;font-weight:700}.scope{font-size:17px;fill:#667085}
+    .lane>rect{fill:#fff;stroke:#DCE6F2;stroke-width:1}.lane:nth-child(even)>rect:first-child{fill:#F9FBFD}.lane .lane-label-bg{fill:#F2F6FB}
+    .lane-label{font-size:20px;font-weight:700;fill:#344054}.node rect{stroke-width:2;filter:url(#shadow)}
+    .node-title{font-size:19px;font-weight:700}.node-detail{font-size:15px;fill:#475467}.edge{fill:none;stroke:#2F3C52;stroke-width:3}.edge.agent{stroke:#6938EF}.edge.success{stroke:#079455}.edge.failure{stroke:#E11D48;stroke-dasharray:8 6}
+    .edge-label{font-size:14px;font-weight:600;fill:#475467;paint-order:stroke;stroke:#fff;stroke-width:7px;stroke-linejoin:round}
+    .legend{font-size:14px;fill:#475467}.footer{fill:#F8FAFC;stroke:#D0D5DD}.footer-text{font-size:17px;font-weight:600;fill:#344054}
+  </style>
+  <rect class="surface" x="12" y="12" width="1976" height="1336" rx="18" />
+  <text class="title" x="1000" y="58" text-anchor="middle">AgentRoam 多端 Agent 工作流</text>
+  <text class="scope" x="1000" y="91" text-anchor="middle">统一会话与运行时适配，让桌面、浏览器和手机接续同一项任务</text>
+  <g class="legend" transform="translate(1190 116)"><circle cx="0" cy="0" r="7" fill="#175CD3"/><text x="14" y="5">主流程</text><circle cx="104" cy="0" r="7" fill="#6938EF"/><text x="118" y="5">Agent</text><circle cx="210" cy="0" r="7" fill="#079455"/><text x="224" y="5">结果</text><circle cx="306" cy="0" r="7" fill="#E11D48"/><text x="320" y="5">失败 / 边界</text></g>
+  <g class="lane"><rect x="24" y="170" width="1952" height="180" />
+      <rect class="lane-label-bg" x="24" y="170" width="170" height="180" />
+      <text class="lane-label" x="109" y="264" text-anchor="middle">访问端</text></g>
+<g class="lane"><rect x="24" y="350" width="1952" height="180" />
+      <rect class="lane-label-bg" x="24" y="350" width="170" height="180" />
+      <text class="lane-label" x="109" y="444" text-anchor="middle">会话与授权</text></g>
+<g class="lane"><rect x="24" y="530" width="1952" height="180" />
+      <rect class="lane-label-bg" x="24" y="530" width="170" height="180" />
+      <text class="lane-label" x="109" y="624" text-anchor="middle">Agent 运行时</text></g>
+<g class="lane"><rect x="24" y="710" width="1952" height="180" />
+      <rect class="lane-label-bg" x="24" y="710" width="170" height="180" />
+      <text class="lane-label" x="109" y="804" text-anchor="middle">工作区能力</text></g>
+<g class="lane"><rect x="24" y="890" width="1952" height="180" />
+      <rect class="lane-label-bg" x="24" y="890" width="170" height="180" />
+      <text class="lane-label" x="109" y="984" text-anchor="middle">结果与恢复</text></g>
+<g class="lane"><rect x="24" y="1070" width="1952" height="180" />
+      <rect class="lane-label-bg" x="24" y="1070" width="170" height="180" />
+      <text class="lane-label" x="109" y="1164" text-anchor="middle">安全边界</text></g>
+  <g><path class="edge primary" d="M 470 262 H 505 V 442 H 540" marker-end="url(#arrow)" />
+      <text class="edge-label" x="505" y="344" text-anchor="middle">任务 / 会话</text></g>
+<g><path class="edge primary" d="M 790 442 H 825 V 622 H 860" marker-end="url(#arrow)" />
+      <text class="edge-label" x="825" y="524" text-anchor="middle">已授权</text></g>
+<g><path class="edge agent" d="M 1110 622 H 1145 V 622 H 1180" marker-end="url(#arrow-violet)" />
+      <text class="edge-label" x="1145" y="614" text-anchor="middle">统一运行接口</text></g>
+<g><path class="edge agent" d="M 1430 622 H 1305 V 802 H 1180" marker-end="url(#arrow-violet)" />
+      <text class="edge-label" x="1305" y="704" text-anchor="middle">受控工具调用</text></g>
+<g><path class="edge success" d="M 1430 802 H 1465 V 982 H 1500" marker-end="url(#arrow-green)" />
+      <text class="edge-label" x="1465" y="884" text-anchor="middle">结果与变更</text></g>
+<g><path class="edge success" d="M 1430 622 H 1465 V 982 H 1500" marker-end="url(#arrow-green)" />
+      <text class="edge-label" x="1465" y="794" text-anchor="middle">流式事件</text></g>
+<g><path class="edge failure" d="M 790 442 H 825 V 1162 H 860" marker-end="url(#arrow-red)" />
+      <text class="edge-label" x="825" y="794" text-anchor="middle">授权失败</text></g>
+<g><path class="edge failure" d="M 1110 622 H 985 V 1162 H 860" marker-end="url(#arrow-red)" />
+      <text class="edge-label" x="985" y="884" text-anchor="middle">运行时不可用</text></g>
+  <g class="node" role="group" aria-label="Desktop / Web / Mobile">
+      <rect x="220" y="210" width="250" height="104" rx="10" style="fill:#ECFDFF;stroke:#087E8B" />
+      <text class="node-title" x="238" y="244">Desktop / Web / Mobile</text>
+      <text class="node-detail" x="238" y="274"><tspan x="238" dy="0">选择会话并提交任务</tspan></text>
+    </g>
+<g class="node" role="group" aria-label="配对与会话路由">
+      <rect x="540" y="390" width="250" height="104" rx="10" style="fill:#EDF4FF;stroke:#175CD3" />
+      <text class="node-title" x="558" y="424">配对与会话路由</text>
+      <text class="node-detail" x="558" y="454"><tspan x="558" dy="0">设备授权可撤销</tspan></text>
+    </g>
+<g class="node" role="group" aria-label="Runtime Adapter">
+      <rect x="860" y="570" width="250" height="104" rx="10" style="fill:#F4F0FF;stroke:#6938EF" />
+      <text class="node-title" x="878" y="604">Runtime Adapter</text>
+      <text class="node-detail" x="878" y="634"><tspan x="878" dy="0">适配不同 Agent 协议</tspan></text>
+    </g>
+<g class="node" role="group" aria-label="Agent Loop">
+      <rect x="1180" y="570" width="250" height="104" rx="10" style="fill:#F4F0FF;stroke:#6938EF" />
+      <text class="node-title" x="1198" y="604">Agent Loop</text>
+      <text class="node-detail" x="1198" y="634"><tspan x="1198" dy="0">思考、调用、观察、续跑</tspan></text>
+    </g>
+<g class="node" role="group" aria-label="终端与文件工作区">
+      <rect x="1180" y="750" width="250" height="104" rx="10" style="fill:#FFF4ED;stroke:#E04F16" />
+      <text class="node-title" x="1198" y="784">终端与文件工作区</text>
+      <text class="node-detail" x="1198" y="814"><tspan x="1198" dy="0">工具按权限执行</tspan></text>
+    </g>
+<g class="node" role="group" aria-label="事件流与状态快照">
+      <rect x="1500" y="930" width="250" height="104" rx="10" style="fill:#ECFDF3;stroke:#079455" />
+      <text class="node-title" x="1518" y="964">事件流与状态快照</text>
+      <text class="node-detail" x="1518" y="994"><tspan x="1518" dy="0">多端持续查看与接续</tspan></text>
+    </g>
+<g class="node" role="group" aria-label="拒绝或降级">
+      <rect x="860" y="1110" width="250" height="104" rx="10" style="fill:#FFF1F3;stroke:#E11D48" />
+      <text class="node-title" x="878" y="1144">拒绝或降级</text>
+      <text class="node-detail" x="878" y="1174"><tspan x="878" dy="0">未授权、离线、能力不可用</tspan></text>
+    </g>
+  <g><rect class="footer" x="45" y="1270" width="1910" height="54" rx="8"/><text class="footer-text" x="1000" y="1304" text-anchor="middle">端到端不变量：设备授权、会话身份、工具权限和运行事件均可独立追踪与撤销。</text></g>
+</svg>
