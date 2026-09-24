@@ -1,0 +1,54 @@
+scripts/generate-flow-diagrams.mjs
+  s_3f2565b4f84945::t_bd0e29ea92f568 1-244
+content-snapshot.js
+  s_3f2565b4f84945::t_a64040a486a301 1-2
+  s_bd20ce99e6a8be::t_4797b868493532 3-629
+assets/flows/agent-swarms.svg
+  s_3f2565b4f84945::t_af2477648a5499 1-98
+assets/flows/agentroam.svg
+  s_3f2565b4f84945::t_e199f97eeab889 1-93
+assets/flows/customer-service.svg
+  s_3f2565b4f84945::t_7bc9bc2117d03d 1-103
+assets/flows/knowledge-base.svg
+  s_3f2565b4f84945::t_c27f720fcb3c36 1-103
+assets/flows/quality-platform.svg
+  s_3f2565b4f84945::t_f3c362d66b02ed 1-96
+assets/flows/smart-refund.svg
+  s_3f2565b4f84945::t_e1c931870ac90a 1-103
+diagram-sources/agent-swarms.html
+  s_3f2565b4f84945::t_05fedc8e959a06 1-98
+diagram-sources/agentroam.html
+  s_3f2565b4f84945::t_ac4249e9a1abde 1-93
+diagram-sources/customer-service.html
+  s_3f2565b4f84945::t_bc0dc364d4ceed 1-103
+diagram-sources/knowledge-base.html
+  s_3f2565b4f84945::t_1ea507be83a42c 1-103
+diagram-sources/quality-platform.html
+  s_3f2565b4f84945::t_528683baf305cb 1-96
+diagram-sources/smart-refund.html
+  s_3f2565b4f84945::t_c8a8982c414305 1-103
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "3fc64efdd4783f4a7fbb8592e2d110a7af5ff47b",
+  "prompts": {},
+  "sessions": {
+    "s_3f2565b4f84945": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0c871-5134-7792-931a-669b4a91cd7c",
+        "model": "gpt-5.6-sol"
+      },
+      "human_author": "无敌就是寂寞 <qu.cao@ly.com>"
+    },
+    "s_bd20ce99e6a8be": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0ce6b-091e-7092-a41f-005b854af272",
+        "model": "gpt-5.6-sol"
+      },
+      "human_author": "无敌就是寂寞 <qu.cao@ly.com>"
+    }
+  }
+}
